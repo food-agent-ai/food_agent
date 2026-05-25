@@ -11,7 +11,7 @@ SECTION_MAP = {
 }
 
 
-COUNT_UNITS = {"개", "알", "장", "봉", "봉지", "팩", "캔", "병", "통", "쪽", "대", "줄"}
+COUNT_UNITS = {"개", "알", "장", "봉", "봉지", "팩", "캔", "병", "통", "쪽", "대", "줄", "근"}
 WEIGHT_UNITS = {"g", "그램"}
 VOLUME_UNITS = {"ml", "mL", "밀리리터"}
 AMOUNT_WORDS = {"조금", "약간", "적당량", "한꼬집", "소량"}
@@ -19,10 +19,15 @@ AMOUNT_WORDS = {"조금", "약간", "적당량", "한꼬집", "소량"}
 
 def _clean_bullet(line: str) -> str:
     line = line.strip()
+
+    # markdown separator 제거
+    if re.fullmatch(r"-{3,}", line):
+        return ""
+
     if not line.startswith("-"):
         return ""
-    return line[1:].strip()
 
+    return line[1:].strip()
 
 def _extract_input_items(lines: list[str]) -> list[str]:
     items = []
@@ -156,3 +161,11 @@ def source_md_to_json(
     )
 
     return data
+
+if __name__ == "__main__":
+    data = source_md_to_json(
+        source_path="../Source.md",
+        output_path="../source.json",
+    )
+
+    print(json.dumps(data, ensure_ascii=False, indent=2))
