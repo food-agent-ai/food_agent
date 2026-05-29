@@ -1,3 +1,4 @@
+import base64
 import json
 import mimetypes
 import os
@@ -5,13 +6,15 @@ import time
 
 import streamlit as st
 from dotenv import load_dotenv
-from google import genai
-from google.genai import types
+from groq import Groq
 
 load_dotenv()
 
+GROQ_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct"
+GROQ_BASE64_REQUEST_LIMIT_BYTES = 4 * 1024 * 1024
+
 st.set_page_config(page_title="음식 사진 레시피 생성기", page_icon="🍽️", layout="centered")
-st.title("🍽️ 음식 사진 레시피 생성기 (Gemini)")
+st.title("🍽️ 음식 사진 레시피 생성기 (Groq Llama 4 Scout)")
 st.write("음식 사진을 업로드하고 **레시피 생성하기** 버튼을 눌러보세요.")
 
 SOURCE_MD_PATH = "source.md"
@@ -108,19 +111,38 @@ JSON 스키마:
 """.strip()
 
 
+def build_image_data_url(image_bytes, mime_type):
+    encoded_image = base64.b64encode(image_bytes).decode("utf-8")
+    return f"data:{mime_type};base64,{encoded_image}"
+
+
+def is_within_groq_base64_request_limit(image_bytes, mime_type):
+    encoded_request_size = len(build_image_data_url(image_bytes, mime_type).encode("utf-8"))
+    return encoded_request_size <= GROQ_BASE64_REQUEST_LIMIT_BYTES
+
+
 def generate_with_retry(client, image_bytes, mime_type, retries=3, base_delay=3):
+    image_data_url = build_image_data_url(image_bytes, mime_type)
+
     for attempt in range(1, retries + 1):
         try:
-            return client.models.generate_content(
-                model="gemini-2.5-flash",
-                config=types.GenerateContentConfig(
-                    response_mime_type="application/json",
-                    temperature=0.2,
-                ),
-                contents=[
-                    types.Part.from_bytes(data=image_bytes, mime_type=mime_type),
-                    prompt,
+            return client.chat.completions.create(
+                model=GROQ_MODEL,
+                messages=[
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": prompt},
+                            {
+                                "type": "image_url",
+                                "image_url": {"url": image_data_url},
+                            },
+                        ],
+                    }
                 ],
+                response_format={"type": "json_object"},
+                temperature=0.2,
+                max_completion_tokens=4096,
             )
         except Exception as e:
             err_text = str(e).lower()
@@ -143,11 +165,11 @@ def generate_with_retry(client, image_bytes, mime_type, retries=3, base_delay=3)
 
 
 if st.button("레시피 생성하기", type="primary"):
-    api_key = os.getenv("GEMINI_API_KEY")
+    api_key = os.getenv("GROQ_API_KEY")
 
     if not api_key:
         st.error(
-            "GEMINI_API_KEY가 설정되지 않았습니다. .env 파일에 키를 추가한 뒤 다시 실행해주세요."
+            "GROQ_API_KEY가 설정되지 않았습니다. .env 파일에 키를 추가한 뒤 다시 실행해주세요."
         )
         st.stop()
 
@@ -159,12 +181,18 @@ if st.button("레시피 생성하기", type="primary"):
         image_bytes = uploaded_file.getvalue()
         mime_type = uploaded_file.type or mimetypes.guess_type(uploaded_file.name)[0] or "image/jpeg"
 
-        client = genai.Client(api_key=api_key)
+        if not is_within_groq_base64_request_limit(image_bytes, mime_type):
+            st.error(
+                "Groq API의 base64 이미지 요청 제한은 4MB입니다. 더 작은 이미지로 다시 업로드해주세요."
+            )
+            st.stop()
 
-        with st.spinner("Gemini가 사진을 분석하고 레시피를 생성하는 중입니다..."):
+        client = Groq(api_key=api_key)
+
+        with st.spinner("Groq Llama 4 Scout가 사진을 분석하고 레시피를 생성하는 중입니다..."):
             response = generate_with_retry(client, image_bytes, mime_type)
 
-        raw_text = (response.text or "").strip()
+        raw_text = (response.choices[0].message.content or "").strip()
 
         try:
             result = json.loads(raw_text)
@@ -243,7 +271,7 @@ if st.button("레시피 생성하기", type="primary"):
             or "too many requests" in err_text
         ):
             st.error(
-                "현재 Gemini 무료 API 요청 한도를 초과했습니다. 잠시 후 다시 시도하거나, 요청 간격을 늘려주세요."
+                "현재 Groq API 요청 한도를 초과했습니다. 잠시 후 다시 시도하거나, 요청 간격을 늘려주세요."
             )
         else:
             st.error("요청 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.")
