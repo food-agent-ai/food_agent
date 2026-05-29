@@ -32,7 +32,7 @@ GROQ_API_KEY=your_groq_api_key_here
 ## 실행
 
 ```bash
-streamlit run recipe_UI.py
+streamlit run src/main.py
 ```
 
 실행 후 브라우저에서 음식 사진을 업로드하고, 인분과 추가 선호사항을 입력한 뒤 **레시피 생성하기** 버튼을 누르면 됩니다.
