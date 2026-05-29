@@ -18,9 +18,17 @@ st.title("🍽️ 음식 사진 레시피 생성기 (Groq Llama 4 Scout)")
 st.write("음식 사진을 업로드하고 **레시피 생성하기** 버튼을 눌러보세요.")
 
 SOURCE_MD_PATH = "source.md"
+FEEDBACK_MD_PATH = "feedback.md"
 
 
 def load_source_md(path: str = SOURCE_MD_PATH) -> str:
+    if not os.path.exists(path):
+        return ""
+    with open(path, "r", encoding="utf-8") as f:
+        return f.read().strip()
+
+
+def load_feedback_md(path: str = FEEDBACK_MD_PATH) -> str:
     if not os.path.exists(path):
         return ""
     with open(path, "r", encoding="utf-8") as f:
@@ -46,67 +54,112 @@ user_preference_text = st.text_area(
 
 source_md_content = load_source_md()
 if source_md_content:
-    st.caption(f"source.md 설정 로드 완료 ({len(source_md_content)}자)")
+    st.caption(f"source.md 로드 완료 ({len(source_md_content)}자)")
 else:
-    st.caption("source.md가 비어있거나 없어 기본 설정만 사용합니다.")
+    st.caption("source.md가 없어 기본 설정만 사용합니다.")
+
+feedback_md_content = load_feedback_md()
+if feedback_md_content:
+    st.caption(f"feedback.md 기억 로드 완료 ({len(feedback_md_content)}자)")
 
 prompt = f"""
 너는 음식 사진을 분석하는 요리 보조 AI다.
-아래 지침을 반드시 지켜라.
+아래 지침, 사용자 기억 파일, 현재 요청을 반영하여 반드시 한국어로 응답하라.
 
-[기본 설정]
+━━━ 사용자 기억 파일 ━━━
+
+[source.md] 우선순위 높음 — 사용자가 직접 관리하는 취향과 보유 재료 목록
+{source_md_content if source_md_content else '(비어 있음)'}
+
+[feedback.md] 자동 학습된 장기 취향 기억 — source.md와 충돌 시 source.md 우선 적용
+{feedback_md_content if feedback_md_content else '(비어 있음)'}
+
+━━━ 현재 요청 ━━━
+
 - 목표 인분: {servings}인분
-- source.md 내용: {source_md_content if source_md_content else '(비어 있음)'}
-- 추가 사용자 선호사항: {user_preference_text if user_preference_text.strip() else '(없음)'}
+- 추가 요청사항: {user_preference_text.strip() if user_preference_text.strip() else '(없음)'}
 
-1) 반드시 한국어로 응답한다.
-2) 음식 사진만 근거로 분석한다.
-3) 사진이 음식이 아니면 is_food를 false로 설정하고 non_food_reason에 이유를 설명한다.
-4) 사진이 음식이면 is_food를 true로 설정하고 레시피를 작성한다.
-5) 사진에서 확실히 보이는 재료는 visible_ingredients에 넣는다.
-6) 확실하지 않고 추정한 재료는 guessed_ingredients에 넣는다.
-7) 사진에서 보이지 않는 양념, 소스, 알레르기 성분은 확정적으로 단정하지 않는다.
-8) 확신이 낮으면 confidence를 low로 설정하고 warnings에 불확실성을 명시한다.
-9) 레시피는 반드시 목표 인분 기준으로 작성한다.
-10) 재료뿐 아니라 필요한 조리도구(cooking_tools), 조리기기(cooking_equipment)를 반드시 포함한다.
-11) 부족한 재료 추출(ingredient_extraction)과 md 파일 관리(md_export) 단계에서 재사용할 수 있게 스키마를 준수한다.
-12) 반드시 아래 JSON 스키마 형태의 **순수 JSON 문자열만** 반환한다.
-13) markdown 코드블록(```) 또는 설명 문장은 절대 포함하지 않는다.
+━━━ 응답 규칙 ━━━
 
-JSON 스키마:
+[기본]
+- 반드시 한국어로만 응답한다.
+- 순수 JSON 문자열만 반환한다. 마크다운 코드블록(```)이나 설명 문장 절대 포함 금지.
+
+[음식 판별]
+- 사진이 음식이 아니면 is_food를 false로 설정하고 non_food_reason에 이유를 작성한다.
+- 음식이 아닌 경우 다른 필드는 모두 기본값(빈 문자열/빈 배열/false)으로 반환한다.
+
+[취향 반영 우선순위]
+- source.md > feedback.md > 추가 요청사항 순으로 적용한다.
+- source.md 내용과 추가 요청사항이 충돌하면 source.md를 따른다.
+- feedback.md는 source.md가 다루지 않는 영역에서만 보완적으로 반영한다.
+- 각각 어디서 무엇을 반영했는지 preference_applied에 명시한다.
+
+[재료 분석]
+- 레시피 필요 재료와 source.md 보유 재료를 대조한다.
+  · 레시피에 필요하고 source.md에 있는 재료 → ingredient_status.available
+  · 레시피에 필요하지만 source.md에 없는 재료 → ingredient_status.missing  ← 네이버 쇼핑 검색에 사용됨
+  · 대체 가능하거나 없어도 되는 재료 → ingredient_status.optional
+- 사진에서 확실히 보이는 재료 → visible_ingredients
+- 사진만으로 추정한 재료 → guessed_ingredients
+- 사진에서 보이지 않는 양념·소스·알레르기 성분은 단정하지 않는다.
+
+[장기 기억 후보 추출]
+- 추가 요청사항에서 feedback.md에 저장할 만한 취향·패턴을 추출한다.
+- 다음은 추출 대상에서 제외한다:
+  · 이미 source.md 또는 feedback.md에 있는 내용
+  · "이번에만", "오늘은" 같은 일회성 요청
+  · 이번 레시피에만 해당하는 구체적 수치(인분, 시간 등)
+- 긍정적 취향 → memory_candidates.preferences (간결한 문장)
+- 회피 사항 → memory_candidates.avoidances (간결한 문장)
+- 추출할 내용이 없으면 두 필드 모두 빈 배열로 반환한다.
+
+[레시피 작성]
+- 모든 재료 양은 목표 인분({servings}인분) 기준으로 계산한다.
+- 조리도구(cooking_tools)와 조리기기(cooking_equipment)를 반드시 포함한다.
+- 확신이 낮으면 confidence를 low로 설정하고 warnings에 불확실성을 명시한다.
+
+━━━ JSON 스키마 ━━━
+
 {{
   "is_food": true,
-  "non_food_reason": "음식이 아닐 때만 이유를 작성, 음식일 때는 빈 문자열",
+  "non_food_reason": "음식이 아닐 때만 작성, 음식이면 빈 문자열",
   "dish_guess": "음식명 후보",
   "confidence": "high | medium | low",
-  "summary": "사진 기반 분석 요약",
-  "visible_ingredients": ["사진에서 보이는 재료"],
+  "summary": "사진 기반 분석 요약 (2~3문장)",
+
+  "visible_ingredients": ["사진에서 확실히 보이는 재료"],
   "guessed_ingredients": ["사진만으로 추정한 재료"],
-  "user_preferences_applied": ["적용한 사용자 선호사항 요약"],
+
+  "preference_applied": {{
+    "from_source_md": ["source.md에서 반영한 취향/제약 항목"],
+    "from_feedback_md": ["feedback.md에서 반영한 취향 항목"],
+    "from_user_request": ["이번 추가 요청사항에서 반영한 항목"]
+  }},
+
   "recipe": {{
     "servings": {servings},
     "cooking_time": "예: 20분",
     "difficulty": "easy | medium | hard",
-    "ingredients": ["레시피에 필요한 재료"],
+    "ingredients": ["재료명 + 양 (예: 닭가슴살 200g)"],
     "cooking_tools": ["예: 칼, 도마, 볼"],
     "cooking_equipment": ["예: 가스레인지, 오븐, 에어프라이어"],
-    "steps": ["조리 단계"]
+    "steps": ["조리 단계 (번호 없이 문장으로)"]
   }},
-  "ingredient_extraction": {{
-    "required_ingredients": ["필요 재료 전체 목록"],
-    "missing_ingredients": ["사진에서 확인되지 않아 추가 준비가 필요한 재료"],
-    "optional_ingredients": ["대체 가능하거나 선택 재료"]
+
+  "ingredient_status": {{
+    "available": ["source.md 보유 재료 중 이 레시피에 필요한 것"],
+    "missing": ["이 레시피에 필요하지만 source.md에 없어 구매해야 할 재료"],
+    "optional": ["대체 가능하거나 없어도 되는 선택 재료"]
   }},
-  "md_export": {{
-    "title": "마크다운 문서 제목",
-    "sections": [
-      {{"heading": "요약", "content": "요약 텍스트"}},
-      {{"heading": "재료", "content": "재료 목록 텍스트"}},
-      {{"heading": "도구/기기", "content": "도구 및 기기 목록 텍스트"}},
-      {{"heading": "조리 순서", "content": "단계 텍스트"}}
-    ]
+
+  "memory_candidates": {{
+    "preferences": ["feedback.md에 저장할 만한 새로운 긍정적 취향"],
+    "avoidances": ["feedback.md에 저장할 만한 새로운 회피 사항"],
+    "reason": "이 항목들을 후보로 선정한 이유 (없으면 빈 문자열)"
   }},
-  "warnings": ["주의사항"]
+
+  "warnings": ["주의사항, 불확실한 재료, 알레르기 가능성 등"]
 }}
 """.strip()
 
@@ -221,9 +274,15 @@ if st.button("레시피 생성하기", type="primary"):
         for item in result.get("guessed_ingredients", []):
             st.write(f"- {item}")
 
-        st.markdown("**적용된 사용자 선호사항**")
-        for item in result.get("user_preferences_applied", []):
-            st.write(f"- {item}")
+        pref = result.get("preference_applied", {})
+        if pref.get("from_source_md") or pref.get("from_feedback_md") or pref.get("from_user_request"):
+            st.markdown("**반영된 취향/설정**")
+            for item in pref.get("from_source_md", []):
+                st.write(f"- [source.md] {item}")
+            for item in pref.get("from_feedback_md", []):
+                st.write(f"- [feedback.md] {item}")
+            for item in pref.get("from_user_request", []):
+                st.write(f"- [요청사항] {item}")
 
         recipe = result.get("recipe", {})
         st.subheader("레시피")
@@ -247,19 +306,37 @@ if st.button("레시피 생성하기", type="primary"):
         for idx, step in enumerate(recipe.get("steps", []), start=1):
             st.write(f"{idx}. {step}")
 
-        extraction = result.get("ingredient_extraction", {})
-        st.subheader("부족한 재료 추출")
-        st.markdown("**추가 준비 필요 재료**")
-        for item in extraction.get("missing_ingredients", []):
-            st.write(f"- {item}")
+        status = result.get("ingredient_status", {})
+        st.subheader("재료 현황")
 
-        st.markdown("**선택 재료**")
-        for item in extraction.get("optional_ingredients", []):
-            st.write(f"- {item}")
+        if status.get("available"):
+            st.markdown("**보유 중인 재료** ✓")
+            for item in status.get("available", []):
+                st.write(f"- {item}")
 
-        st.markdown("**주의사항**")
-        for item in result.get("warnings", []):
-            st.write(f"- {item}")
+        if status.get("missing"):
+            st.markdown("**구매 필요 재료**")
+            for item in status.get("missing", []):
+                st.write(f"- {item}")
+
+        if status.get("optional"):
+            st.markdown("**선택 재료**")
+            for item in status.get("optional", []):
+                st.write(f"- {item}")
+
+        candidates = result.get("memory_candidates", {})
+        if candidates.get("preferences") or candidates.get("avoidances"):
+            st.subheader("장기 기억 후보")
+            st.caption("다음 항목이 feedback.md 저장 후보로 추출되었습니다.")
+            for item in candidates.get("preferences", []):
+                st.write(f"- 👍 {item}")
+            for item in candidates.get("avoidances", []):
+                st.write(f"- 👎 {item}")
+
+        if result.get("warnings"):
+            st.subheader("주의사항")
+            for item in result.get("warnings", []):
+                st.write(f"- {item}")
 
     except Exception as e:
         err_text = str(e).lower()
