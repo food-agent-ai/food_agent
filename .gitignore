@@ -37,3 +37,9 @@ Thumbs.db
 
 # issues
 issues/
+
+# 런타임 생성 레시피 파일
+recipes/
+
+# 루트 개발 workspace
+/_workspace/
