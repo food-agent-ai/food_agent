@@ -38,8 +38,19 @@ Thumbs.db
 # issues
 issues/
 
-# 런타임 생성 레시피 파일
+# 런타임 생성 데이터
 recipes/
+cart/
+completed/
+data/
 
-# 루트 개발 workspace
-/_workspace/
+# 로컬 설정 및 개인 데이터
+config.json
+source.md
+feedback.md
+
+# 디자인 바이너리 (extracted 결과물은 트래킹)
+design_download.gz
+
+# 개발 workspace (중첩 경로 포함)
+_workspace/
