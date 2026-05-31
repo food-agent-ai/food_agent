@@ -1,0 +1,62 @@
+{
+  "dish_name": "오이 계란 샌드위치",
+  "summary": "오이와 계란을 활용한 간단한 샌드위치",
+  "servings": 1,
+  "recipe": {
+    "cooking_time": "15분",
+    "difficulty": "easy",
+    "ingredients": [
+      {
+        "name": "식빵",
+        "amount": "2개"
+      },
+      {
+        "name": "오이",
+        "amount": "1개"
+      },
+      {
+        "name": "계란",
+        "amount": "2알"
+      },
+      {
+        "name": "마요네즈",
+        "amount": "2큰술"
+      }
+    ],
+    "cooking_tools": ["칼", "도마", "볼", "숟가락"],
+    "cooking_equipment": ["가스레인지"],
+    "steps": [
+      "계란을 삶아 껍질을 벗긴 뒤 볼에 넣고 으깬다.",
+      "오이를 얇게 썬다.",
+      "으깬 계란에 마요네즈를 넣고 섞는다.",
+      "식빵 위에 오이와 계란 속을 올린다.",
+      "다른 식빵으로 덮어 샌드위치를 완성한다."
+    ]
+  },
+  "ingredient_check": {
+    "available_ingredients": [
+      {
+        "name": "식빵",
+        "required_amount": "2개",
+        "current_amount": "10개"
+      },
+      {
+        "name": "오이",
+        "required_amount": "1개",
+        "current_amount": ""
+      },
+      {
+        "name": "계란",
+        "required_amount": "2알",
+        "current_amount": "2알"
+      }
+    ],
+    "missing_ingredients": [
+      {
+        "name": "마요네즈",
+        "amount": "2큰술"
+      }
+    ],
+    "optional_ingredients": []
+  }
+}
