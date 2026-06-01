@@ -1,5 +1,4 @@
 streamlit
-groq
 python-dotenv
 requests
 google-generativeai
