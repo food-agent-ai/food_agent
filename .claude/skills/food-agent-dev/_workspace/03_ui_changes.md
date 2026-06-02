@@ -1,58 +1,36 @@
-# 03_ui_changes — UI 전면 교체 (ref3.jpg 챗봇 스타일 + 재분석 플로우)
+# 03 UI Changes — DEV 패널 플로팅화 / day-sep 제거 / 칩 셀렉터 수정
 
-대상: `C:\research\food_agent\src\main.py` (line 365 UI 섹션 ~ 파일 끝)
-파이프라인 함수(line 1~362)는 변경하지 않음.
+날짜: 2026-06-02
+대상: `src/main.py`
+검증: http://localhost:8501 (Chrome DevTools 실측 완료)
 
-## 변경 요약
+## 수정 1 — DEV MODE 패널 → position:fixed 플로팅
 
-### 1. 디자인 전면 교체 (ref2 보라색 → ref3 화이트/블루 챗봇)
-- CSS를 ref3.jpg 명세로 전면 교체.
-  - 흰색 배경(`.stApp`, `[data-testid="stAppViewContainer"]`), 투명 헤더.
-  - AI 버블: 연회색 `#F0F0F0`, 좌측, 로봇 아바타(`.msg-row-ai` / `.avatar-ai` / `.bubble-ai`).
-  - USER 버블: 파랑 `#3B82F6`, 우측(`.msg-row-user` / `.bubble-user`).
-  - 레시피 카드: 흰색 + 테두리 + 그림자, `step-num` 파란 원형 번호, `divider` 클래스.
-  - `footer` 숨김, `#MainMenu` 숨김.
-- 상단 `.chat-header` 추가: 봇 아바타 + 이름("레시피 AI") + 초록 상태점("● 항상 활성화"). sticky.
-- 기존 중앙 `<h2>` 앱 타이틀 제거(헤더가 대체).
+- 기존 `_dev-panel` HTML 마크다운 + `st.columns(7)`(채팅 레이아웃 안에 렌더링) 제거.
+- `with st.container(key="_dev_panel"):` 로 감싸고 `_dev_mode_open` 세션 상태로 토글.
+  - 접힘: 🛠 버튼만 표시 (`_dev_open`)
+  - 펼침: `✕ DEV MODE` 닫기 버튼(`_dev_close`) + 7개 점프 버튼을 2열(st.columns(2)x3 + st.columns(1)) 배치.
+- CSS: `[class*="st-key-_dev_panel"]` 컨테이너 **자체**를 `position:fixed; bottom:20px; right:20px; z-index:9999` 처리.
+  - 주의(해결됨): 초기 시도에서 `height:0 + > div:first-child fixed` 방식은 컬럼 버튼들이 페이지 상단으로 탈출하는 버그 발생 → 컨테이너 stVerticalBlock 자체를 fixed로 변경하여 해결. 8개 버튼이 하나의 박스로 정상 렌더링.
+- 실측: `position:fixed`, bottom=20, rightGap=20, 버튼 8개(✕ + ①~⑦) 모두 박스 내부. 채팅 레이아웃 영향 없음.
 
-### 2. session_state 신규 키
-- `reanalyze_pending: False` 추가 (재분석 트리거). `SESSION_DEFAULTS`와 `reset_all()` 양쪽 반영.
+## 수정 2 — day-separator 완전 제거
 
-### 3. 헬퍼 변경
-- `render_chat_history()`: 새 클래스(`msg-row-ai`/`bubble-ai`, `msg-row-user`/`bubble-user`)로 마크업 교체. user content `html.escape(str(...))`.
-- `build_recipe_card_html()`: ref3 카드 레이아웃으로 재구성 — `step-item`을 flex(번호 + 텍스트), `divider` 클래스, intro에 회색 인라인 스타일. 모든 텍스트 `html.escape`.
-- `add_ai_message` 중복 방지 로직은 기존 유지(재렌더 시 step 2/3 안내 중복 방지).
+- 렌더 라인 `st.markdown('<div class="day-sep">...오늘 · 음식 사진 레시피...')` 삭제.
+- CSS `.day-sep`, `.day-sep::before/::after`, `.day-sep span` 규칙 삭제.
+- 실측: `document.querySelector('.day-sep')` → null.
 
-### 4. 플로우 변경
-- **재분석 처리 블록**(신규): `reanalyze_pending`이 True면 step 분기보다 **먼저** 실행 → `analyze_food_image` 재호출 → vision_result 갱신, recipe_result/confirmed/awaiting 리셋 → step 4로 이동 후 `st.rerun()`. 실패 시 AI 메시지로 안내 후 플래그 해제.
-- **Step 1**: 업로더 `label_visibility="collapsed"`, 버튼 "📷 사진 분석하기". 비음식 사진은 `st.warning` 대신 AI 버블 안내 + `render_chat_history()` 후 `st.stop()`. 4MB 초과 메시지 간소화.
-- **Step 2**: skip 버튼 "건너뛰기 →"(full-width 아님, pill 스타일), 안내 문구 ref3 톤으로 변경. user 메시지 "건너뛰기"로 통일.
-- **Step 3**: 직전 인분 선택 확인 문구("알겠어요! N인분으로 준비할게요") 추가. skip/입력 처리 동일 패턴.
-- **Step 4 버튼 분기 재구성**: 기존 2분기(확정/수정 → 2버튼) → 3분기.
-  - confirmed: "🔄 처음부터 다시 시작" 단일 버튼.
-  - awaiting: 수정 요청 chat_input.
-  - default: **3컬럼** — "✅ 레시피 확정" / "✏️ 수정 요청" / "🔍 이미지 재분석"(신규, `reanalyze_pending=True` 세팅).
-- step >= 2일 때만 업로드 이미지 expander 노출(`step >= 2 and image_bytes`).
+## 수정 3 — 칩 CSS 셀렉터 수정
 
-## 파이프라인 스키마 의존 (02_pipeline_changes.md 대조)
-UI는 모두 `result.get("field", default)` 패턴으로 접근. 사용 필드:
-- vision_result: `is_food`, `non_food_reason`, `dish_name`, `ingredients`(list)
-- recipe: `dish_name`, `introduction`, `cooking_time`, `difficulty`(easy/medium/hard), `servings`, `ingredients`(str 또는 {name,amount}), `steps`(list), `missing_ingredients`(list)
-스키마 필드가 누락/변경돼도 기본값으로 안전 렌더(빈 카드/"-"/"재료 정보 없음").
+- `[data-testid="column"]` → `[data-testid="stColumn"]` (step2_chips / step3_chips 스코프).
+- 실측: Step 2 칩 컬럼 `getComputedStyle().flex` → `"0 0 auto"` (이전 `"1 1 calc(20% - 16px)"`).
+- 결과: 인분 선택 칩이 균등 분할 대신 콘텐츠 폭으로 좌측 정렬.
 
-## QA 테스트 포인트 (qa-reviewer 참조)
-1. **헤더 렌더링**: 상단 sticky 헤더(아바타/이름/상태점) 표시.
-2. **버블 스타일**: AI 회색 좌측 / USER 파랑 우측 정렬 확인.
-3. **Step 1 비음식 처리**: 음식 아닌 사진 업로드 시 AI 버블 안내 + 흐름 중단(에러 박스 아님).
-4. **Step 1 4MB 초과**: `is_within_groq_base64_request_limit` False 시 에러 + stop.
-5. **인분 파싱**: "3명" 등 자유 입력 → `parse_servings`, 빈 입력/건너뛰기 → None.
-6. **재분석 신규 플로우**: step 4에서 "🔍 이미지 재분석" → 동일 이미지 재분석 → "재분석 완료" 메시지 → 동일 servings/extra로 레시피 재생성. recipe_confirmed/awaiting 리셋 확인.
-7. **수정 요청**: extra_requests 누적("기존 / 신규") 후 재생성.
-8. **확정 저장**: `save_recipe` 경로 표시 + `missing_ingredients` 있으면 네이버 쇼핑 링크(녹색 pill, `target="_blank"`, URL escape).
-9. **처음부터 다시**: `reset_all`로 모든 상태(신규 reanalyze_pending 포함) 초기화.
-10. **add_ai_message 중복 방지**: step 2/3 재렌더 시 안내 메시지 중복 없음.
-11. **HTML 이스케이프**: dish_name/재료/단계/경로/쇼핑 URL 모두 escape — XSS 안전.
+## QA 테스트 포인트
 
-## 호환성
-- 사용 API: `st.chat_input`, `st.columns`, `st.file_uploader(label_visibility=...)`, `use_container_width` — Streamlit 1.26+ 필요. `requirements.txt` 버전과 대조 권장.
-- `py_compile` / AST 파싱 통과 확인.
+- 사이드바 ⚙ 로 dev_mode 토글 → 우하단 🛠 플로팅 버튼 확인.
+- 🛠 클릭 → DEV MODE 패널 펼침, ✕ 로 접힘.
+- 7개 점프 버튼이 패널 내부에 머무는지(상단 탈출 없음) 확인.
+- 채팅 뷰 상단에 day-sep 띠가 없는지 확인.
+- Step 2/3 칩이 콘텐츠 폭으로 좌측 정렬되는지 확인.
+- 주의: dev_mode 세션 상태는 F5 새로고침 시 초기화됨(기존 동작). 새로고침 후 다시 ⚙ 토글 필요.

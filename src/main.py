@@ -6,6 +6,7 @@ import mimetypes
 import os
 import re
 import time
+from pathlib import Path
 
 import requests
 import streamlit as st
@@ -426,6 +427,10 @@ _NAVER_STOP_WORDS = [
     "향수", "향기", "방향제", "영양제", "보충제", "비타민",
     "화장품", "스킨케어", "뷰티", "세럼", "로션", "크림",
     "샴푸", "바디워시", "세제", "세정제",
+    "의류", "패션", "가방", "신발", "악세서리", "귀걸이", "목걸이",
+    "인테리어", "가구", "조명", "벽지", "침구",
+    "전자", "가전", "핸드폰", "컴퓨터", "노트북",
+    "다이어리", "문구", "팬시", "장난감", "완구",
 ]
 
 
@@ -815,781 +820,15 @@ st.set_page_config(
 )
 
 
-# ─────────────────────────── CSS (styles.css 기반 전면 교체) ───────────────────────────
-st.markdown(
-    """
-    <style>
-    @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css');
-    @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&display=swap');
-
-    :root {
-      /* ---- Canvas & surfaces ---- */
-      --bg:        #F4F6F9;
-      --bg-soft:   #EDF0F5;
-      --surface:   #FFFFFF;
-      --surface-2: #FAFBFC;
-      --surface-3: #F5F7FA;
-
-      /* ---- Ink ---- */
-      --ink:       #14171F;
-      --ink-2:     #555E6E;
-      --ink-3:     #8A93A3;
-      --ink-4:     #B4BBC7;
-
-      /* ---- Lines ---- */
-      --line:      #E6E9EF;
-      --line-2:    #EEF1F5;
-      --line-strong: #D7DCE5;
-
-      /* ---- Brand blue ---- */
-      --blue:      #2F6BFF;
-      --blue-600:  #1F5BF0;
-      --blue-700:  #1A4FD6;
-      --blue-soft: #ECF1FF;
-      --blue-soft-2: #E0E8FF;
-      --blue-ink:  #1B47B8;
-
-      /* ---- Accents ---- */
-      --green:     #15A862;
-      --green-soft:#E4F6EC;
-      --green-ink: #0E7C48;
-      --amber:     #E08600;
-      --amber-soft:#FCF1DC;
-      --amber-ink: #9A5B00;
-      --naver:     #03C75A;
-      --rose:      #E5484D;
-      --rose-soft: #FCEBEC;
-
-      /* ---- Radius ---- */
-      --r-xs: 7px;
-      --r-sm: 10px;
-      --r-md: 14px;
-      --r-lg: 18px;
-      --r-xl: 24px;
-      --r-pill: 999px;
-
-      /* ---- Shadow ---- */
-      --sh-xs: 0 1px 2px rgba(20,23,31,.05);
-      --sh-sm: 0 1px 3px rgba(20,23,31,.06), 0 1px 2px rgba(20,23,31,.04);
-      --sh-md: 0 4px 14px rgba(20,23,31,.07), 0 1px 3px rgba(20,23,31,.05);
-      --sh-lg: 0 12px 34px rgba(20,23,31,.10), 0 3px 8px rgba(20,23,31,.05);
-      --sh-blue: 0 6px 18px rgba(47,107,255,.28);
-
-      /* ---- Type ---- */
-      --font: 'Pretendard', -apple-system, system-ui, sans-serif;
-      --mono: 'DM Mono', ui-monospace, 'SF Mono', monospace;
-
-      --sidebar-w: 248px;
-    }
-
-    .mono { font-family: var(--mono); font-feature-settings: "tnum"; letter-spacing: -0.02em; }
-
-    /* ============================================================
-       Streamlit 오버라이드
-       ============================================================ */
-    .stApp, [data-testid="stAppViewContainer"] {
-        background: var(--bg) !important;
-        font-family: var(--font);
-    }
-    [data-testid="stHeader"] { background: transparent !important; }
-    /* Streamlit 헤더/푸터 완전 숨김 (Deploy 버튼 포함) */
-    [data-testid="stHeader"] { display: none !important; }
-    header[data-testid="stHeader"] { display: none !important; }
-    footer { display: none !important; }
-    #MainMenu { visibility: hidden; }
-    .stDeployButton { display: none !important; }
-    [data-testid="stToolbarActions"] { display: none !important; }
-    [data-testid="stStatusWidget"] { display: none !important; }
-    [data-testid="stDecoration"] { display: none !important; }
-
-    [data-testid="stSidebar"] {
-        background: var(--surface) !important;
-        border-right: 1px solid var(--line);
-    }
-    [data-testid="stSidebar"] > div:first-child { padding-top: 0; }
-    /* 메인 컨테이너: padding 0 (topbar가 상단에 바로 붙음) */
-    [data-testid="stMainBlockContainer"] { padding: 0 !important; max-width: 100% !important; }
-    .main .block-container { padding: 0 !important; max-width: 100% !important; }
-
-    /* 파일 업로더: 업로드된 파일 정보 표시 숨김 */
-    [data-testid="stUploadedFile"] { display: none !important; }
-    [data-testid="stFileUploaderFileName"] { display: none !important; }
-    [data-testid="stFileUploaderDeleteBtn"] { display: none !important; }
-    [data-testid="stFileUploader"] small { display: none !important; }
-
-    /* st.chat_input → composer 스타일 */
-    [data-testid="stChatInputContainer"] {
-        border-top: 1px solid var(--line) !important;
-        background: rgba(255,255,255,.92) !important;
-        backdrop-filter: blur(8px) !important;
-        padding: 12px 26px 16px !important;
-    }
-    [data-testid="stChatInputContainer"] > div {
-        max-width: 760px !important;
-        margin: 0 auto !important;
-        border: 1.5px solid var(--line-strong) !important;
-        border-radius: var(--r-lg) !important;
-        background: var(--surface) !important;
-        display: flex !important;
-        align-items: center !important;
-        padding: 4px 6px 4px 16px !important;
-        gap: 10px !important;
-    }
-    [data-testid="stChatInputContainer"] > div:focus-within {
-        border-color: var(--blue) !important;
-        box-shadow: 0 0 0 4px var(--blue-soft) !important;
-    }
-    [data-testid="stChatInputTextArea"] {
-        font-family: var(--font) !important;
-        font-size: 14.5px !important;
-        color: var(--ink) !important;
-        padding: 9px 0 !important;
-        min-height: 0 !important;
-    }
-    [data-testid="stChatInputTextArea"]::placeholder { color: var(--ink-4) !important; }
-    [data-testid="stChatInputSubmitButton"] > button {
-        background: var(--blue) !important; color: #fff !important;
-        border-radius: 12px !important; border: none !important;
-        width: 40px !important; height: 40px !important; padding: 0 !important;
-        box-shadow: var(--sh-blue) !important; flex-shrink: 0 !important;
-    }
-    [data-testid="stChatInputSubmitButton"] > button:disabled,
-    [data-testid="stChatInputSubmitButton"] > button[disabled] {
-        background: var(--line-strong) !important; box-shadow: none !important;
-    }
-    .stButton > button {
-        border-radius: var(--r-md) !important;
-        font-family: var(--font) !important;
-        font-weight: 700 !important;
-    }
-    .stFileUploader { border-radius: var(--r-lg) !important; }
-
-    /* ============================================================
-       SIDEBAR
-       ============================================================ */
-    .sidebar { width: var(--sidebar-w); min-width: var(--sidebar-w); background: var(--surface);
-      border-right: 1px solid var(--line); display: flex; flex-direction: column; height: 100%; }
-    .sb-brand { display: flex; align-items: center; gap: 11px; padding: 20px 20px 16px; }
-    .sb-logo {
-      width: 38px; height: 38px; border-radius: 11px;
-      background: linear-gradient(155deg, var(--blue) 0%, var(--blue-700) 100%);
-      display: grid; place-items: center; box-shadow: var(--sh-blue);
-      color: #fff; flex-shrink: 0; font-size: 19px;
-    }
-    .sb-brand-name { font-weight: 800; font-size: 16px; letter-spacing: -0.02em; color: var(--ink); }
-    .sb-brand-sub { font-size: 11.5px; color: var(--ink-3); margin-top: 1px; font-weight: 500; }
-
-    .sb-new {
-      margin: 4px 14px 14px; display: flex; align-items: center; justify-content: center; gap: 8px;
-      padding: 11px 14px; background: var(--blue); color: #fff; border: none; border-radius: var(--r-md);
-      font-weight: 700; font-size: 13.5px; box-shadow: var(--sh-blue);
-      transition: transform .12s ease, background .15s ease;
-    }
-    .sb-new:hover { background: var(--blue-600); transform: translateY(-1px); }
-    .sb-new:active { transform: translateY(0); }
-
-    .sb-nav { padding: 0 12px; display: flex; flex-direction: column; gap: 2px; }
-    .sb-nav-item {
-      display: flex; align-items: center; gap: 11px; padding: 9px 12px; border-radius: var(--r-sm);
-      background: none; border: none; width: 100%; text-align: left;
-      color: var(--ink-2); font-weight: 600; font-size: 13.5px;
-      transition: background .12s ease, color .12s ease;
-    }
-    .sb-nav-item:hover { background: var(--surface-3); color: var(--ink); }
-    .sb-nav-item.active { background: var(--blue-soft); color: var(--blue-ink); }
-    .sb-nav-item.active svg { color: var(--blue); }
-    .sb-nav-item svg { color: var(--ink-3); flex-shrink: 0; }
-    .sb-nav-count {
-      margin-left: auto; font-size: 11px; font-weight: 700;
-      background: var(--surface-3); color: var(--ink-3);
-      padding: 1px 7px; border-radius: var(--r-pill); min-width: 20px; text-align: center;
-    }
-    .sb-nav-item.active .sb-nav-count { background: var(--blue-soft-2); color: var(--blue-ink); }
-
-    .sb-section-label {
-      padding: 16px 14px 7px; font-size: 11px; font-weight: 700;
-      color: var(--ink-4); letter-spacing: 0.04em; text-transform: uppercase;
-    }
-    .sb-saved { flex: 1; overflow-y: auto; padding: 0 12px 12px; }
-    .sb-saved::-webkit-scrollbar { width: 6px; }
-    .sb-saved::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 3px; }
-
-    .sb-recipe {
-      display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: var(--r-sm);
-      background: none; border: none; width: 100%; text-align: left; transition: background .12s ease;
-    }
-    .sb-recipe:hover { background: var(--surface-3); }
-    .sb-recipe.active { background: var(--blue-soft); }
-    .sb-recipe-thumb {
-      width: 30px; height: 30px; border-radius: 8px; flex-shrink: 0;
-      display: grid; place-items: center; font-size: 15px;
-      background: var(--surface-3); border: 1px solid var(--line);
-    }
-    .sb-recipe-name { font-size: 13px; font-weight: 600; color: var(--ink);
-      overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .sb-recipe-meta { font-size: 10.5px; color: var(--ink-3); margin-top: 1px; }
-    .sb-status-dot { width: 7px; height: 7px; border-radius: 50%; margin-left: auto; flex-shrink: 0; }
-    .dot-cart { background: var(--amber); }
-    .dot-done { background: var(--green); }
-
-    .sb-recipe-wrap {
-      display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: var(--r-sm);
-      width: 100%; text-align: left;
-    }
-    .sb-recipe-wrap:hover { background: var(--surface-3); }
-
-    .sb-foot { border-top: 1px solid var(--line); padding: 12px 16px; display: flex; align-items: center; gap: 10px; }
-    .sb-avatar {
-      width: 30px; height: 30px; border-radius: 50%;
-      background: var(--blue-soft); color: var(--blue-ink);
-      display: grid; place-items: center; font-weight: 800; font-size: 12px;
-    }
-
-    /* ============================================================
-       TOPBAR
-       ============================================================ */
-    .topbar {
-      height: 60px; min-height: 60px;
-      border-bottom: 1px solid var(--line); background: rgba(255,255,255,.82); backdrop-filter: blur(8px);
-      display: flex; align-items: center; gap: 14px; padding: 0 26px; margin-bottom: 8px;
-    }
-    .topbar-title { font-weight: 800; font-size: 16.5px; letter-spacing: -0.02em; color: var(--ink); }
-    .topbar-sub { font-size: 12.5px; color: var(--ink-3); font-weight: 500; }
-    .topbar-spacer { flex: 1; }
-    .topbar-status {
-      display: flex; align-items: center; gap: 7px; font-size: 12.5px; font-weight: 600;
-      color: var(--green-ink); background: var(--green-soft); padding: 5px 11px; border-radius: var(--r-pill);
-    }
-    .live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green);
-      box-shadow: 0 0 0 0 rgba(21,168,98,.5); animation: pulse 2.2s infinite; display: inline-block; }
-    @keyframes pulse {
-      0% { box-shadow: 0 0 0 0 rgba(21,168,98,.45); }
-      70% { box-shadow: 0 0 0 6px rgba(21,168,98,0); }
-      100% { box-shadow: 0 0 0 0 rgba(21,168,98,0); }
-    }
-
-    .scroll { flex: 1; overflow-y: auto; }
-    .scroll::-webkit-scrollbar { width: 9px; }
-    .scroll::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 5px; border: 2px solid var(--bg); }
-    .scroll::-webkit-scrollbar-track { background: transparent; }
-
-    /* ============================================================
-       BUTTONS / CHIPS
-       ============================================================ */
-    .btn {
-      display: inline-flex; align-items: center; justify-content: center; gap: 7px;
-      border: 1px solid transparent; border-radius: var(--r-md);
-      font-weight: 700; font-size: 13.5px; padding: 10px 16px; transition: all .14s ease; white-space: nowrap;
-    }
-    .btn-primary { background: var(--blue); color: #fff; box-shadow: var(--sh-blue); }
-    .btn-primary:hover { background: var(--blue-600); transform: translateY(-1px); }
-    .btn-primary:active { transform: translateY(0); }
-    .btn-primary:disabled { background: var(--line-strong); color: #fff; box-shadow: none; cursor: not-allowed; transform: none; }
-    .btn-ghost { background: var(--surface); color: var(--ink); border-color: var(--line-strong); box-shadow: var(--sh-xs); }
-    .btn-ghost:hover { background: var(--surface-3); border-color: var(--ink-4); }
-    .btn-soft { background: var(--blue-soft); color: var(--blue-ink); }
-    .btn-soft:hover { background: var(--blue-soft-2); }
-    .btn-green { background: var(--green); color: #fff; box-shadow: 0 6px 18px rgba(21,168,98,.26); }
-    .btn-green:hover { background: var(--green-ink); transform: translateY(-1px); }
-    .btn-sm { padding: 7px 13px; font-size: 12.5px; border-radius: var(--r-sm); }
-    .btn-lg { padding: 13px 22px; font-size: 14.5px; border-radius: var(--r-md); }
-
-    .chip {
-      display: inline-flex; align-items: center; gap: 6px;
-      background: var(--surface); border: 1.5px solid var(--blue-soft-2);
-      color: var(--blue-ink); font-weight: 600; font-size: 13px;
-      padding: 8px 14px; border-radius: var(--r-pill); transition: all .13s ease;
-    }
-    .chip:hover { border-color: var(--blue); background: var(--blue-soft); transform: translateY(-1px); }
-    .chip.selected { background: var(--blue); color: #fff; border-color: var(--blue); }
-
-    /* ============================================================
-       CHAT
-       ============================================================ */
-    .chat-wrap { max-width: 760px; margin: 0 auto; padding: 30px 26px 40px; }
-    .day-sep { display: flex; align-items: center; gap: 14px; margin: 6px 0 22px; }
-    .day-sep::before, .day-sep::after { content: ""; flex: 1; height: 1px; background: var(--line); }
-    .day-sep span { font-size: 11.5px; color: var(--ink-3); font-weight: 600; }
-
-    .msg-ai { display: flex; gap: 12px; margin-bottom: 16px; max-width: 90%; }
-    .msg-ai-avatar {
-      width: 36px; height: 36px; border-radius: 11px; flex-shrink: 0;
-      background: linear-gradient(155deg, var(--blue) 0%, var(--blue-700) 100%);
-      display: grid; place-items: center; color: #fff; box-shadow: var(--sh-sm); margin-top: 2px; font-size: 17px;
-    }
-    .bubble-ai {
-      background: var(--surface); border: 1px solid var(--line);
-      border-radius: 6px 16px 16px 16px; padding: 13px 16px;
-      font-size: 14.5px; line-height: 1.62; color: var(--ink); box-shadow: var(--sh-xs);
-    }
-    .bubble-ai b { font-weight: 700; }
-    .bubble-ai .sub { color: var(--ink-3); font-size: 13px; }
-
-    .msg-user { display: flex; justify-content: flex-end; margin-bottom: 16px; }
-    .bubble-user {
-      background: var(--blue); color: #fff; border-radius: 16px 6px 16px 16px;
-      padding: 12px 16px; font-size: 14.5px; line-height: 1.55; max-width: 75%;
-      box-shadow: var(--sh-blue); font-weight: 500;
-    }
-    .bubble-user.photo { padding: 6px; }
-    .bubble-user.photo img, .bubble-user.photo .ph { border-radius: 12px; display: block; }
-
-    .quick-row { display: flex; flex-wrap: wrap; gap: 9px; margin: 0 0 20px 48px; }
-
-    .typing { display: flex; gap: 4px; padding: 4px 2px; }
-    .typing i { width: 7px; height: 7px; border-radius: 50%; background: var(--ink-4); animation: bounce 1.3s infinite; }
-    .typing i:nth-child(2) { animation-delay: .18s; }
-    .typing i:nth-child(3) { animation-delay: .36s; }
-    @keyframes bounce { 0%,60%,100% { transform: translateY(0); opacity:.5; } 30% { transform: translateY(-5px); opacity:1; } }
-
-    /* upload zone */
-    .upload-zone {
-      margin: 4px 0 18px 48px; max-width: 420px;
-      border: 2px dashed var(--line-strong); border-radius: var(--r-lg);
-      background: var(--surface-2); padding: 26px;
-      display: flex; flex-direction: column; align-items: center; gap: 12px;
-      text-align: center; transition: all .16s ease;
-    }
-    .upload-zone:hover { border-color: var(--blue); background: var(--blue-soft); }
-    .upload-ic { width: 50px; height: 50px; border-radius: 14px; background: var(--blue-soft);
-      color: var(--blue); display: grid; place-items: center; }
-    .upload-zone h4 { margin: 0; font-size: 14.5px; font-weight: 700; color: var(--ink); }
-    .upload-zone p { margin: 0; font-size: 12.5px; color: var(--ink-3); }
-
-    .ph {
-      background-image: repeating-linear-gradient(45deg, #EEF1F6 0 11px, #E4E8EF 11px 22px);
-      display: grid; place-items: center; color: var(--ink-3);
-      font-family: var(--mono); font-size: 12px; position: relative;
-    }
-    .ph.food { background-image: repeating-linear-gradient(45deg, #F3ECDF 0 11px, #EDE3D0 11px 22px); }
-
-    /* ============================================================
-       RECIPE CARD
-       ============================================================ */
-    .recipe-card {
-      background: var(--surface); border: 1px solid var(--line);
-      border-radius: var(--r-lg); box-shadow: var(--sh-md); overflow: hidden; margin-bottom: 6px;
-    }
-    .rc-head { padding: 18px 20px 14px; }
-    .rc-eyebrow { font-size: 11.5px; font-weight: 700; color: var(--blue); letter-spacing: 0.03em; text-transform: uppercase; }
-    .rc-title { font-size: 21px; font-weight: 800; margin: 5px 0 6px; letter-spacing: -0.025em; color: var(--ink); }
-    .rc-intro { font-size: 13.5px; color: var(--ink-2); line-height: 1.6; }
-
-    .rc-meta { display: flex; gap: 10px; padding: 0 20px 16px; flex-wrap: wrap; }
-    .rc-meta-item {
-      display: flex; align-items: center; gap: 7px;
-      background: var(--surface-3); border: 1px solid var(--line-2);
-      border-radius: var(--r-sm); padding: 8px 12px; flex: 1; min-width: 92px;
-    }
-    .rc-meta-ic { color: var(--blue); display: grid; place-items: center; }
-    .rc-meta-k { font-size: 10.5px; color: var(--ink-3); font-weight: 600; display: block; }
-    .rc-meta-v { font-size: 14px; font-weight: 800; display: block; color: var(--ink); }
-
-    .rc-section { padding: 16px 20px; border-top: 1px solid var(--line-2); }
-    .rc-section-title { display: flex; align-items: center; gap: 8px; font-size: 13.5px; font-weight: 800; margin-bottom: 13px; color: var(--ink); }
-    .rc-section-title .n { color: var(--ink-4); font-weight: 700; font-size: 12px; margin-left: auto; }
-
-    .ing-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-    .ing-pill {
-      display: flex; align-items: center; gap: 9px;
-      background: var(--surface-2); border: 1px solid var(--line-2);
-      border-radius: var(--r-sm); padding: 9px 12px;
-    }
-    .ing-check { width: 17px; height: 17px; border-radius: 5px; border: 1.5px solid var(--line-strong); flex-shrink: 0; display: grid; place-items: center; font-size: 10px; font-weight: 800; transition: all .12s; }
-    .ing-pill.have .ing-check { background: var(--green); border-color: var(--green); color: #fff; }
-    .ing-pill.missing { background: var(--amber-soft); border-color: #F0DCB0; }
-    .ing-pill.missing .ing-check { background: var(--amber-soft); border-color: var(--amber); color: var(--amber-ink); }
-    .ing-name { font-size: 13.5px; font-weight: 600; color: var(--ink); }
-    .ing-amt { margin-left: auto; font-size: 12.5px; color: var(--ink-2); white-space: nowrap; }
-    .ing-pill.missing .ing-amt { color: var(--amber-ink); font-weight: 600; }
-
-    .step { display: flex; gap: 13px; padding: 11px 0; }
-    .step:not(:last-child) { border-bottom: 1px solid var(--line-2); }
-    .step-n {
-      width: 26px; height: 26px; border-radius: 9px; flex-shrink: 0;
-      background: var(--blue-soft); color: var(--blue-ink);
-      display: grid; place-items: center; font-weight: 800; font-size: 13px; font-family: var(--mono);
-    }
-    .step-tx { font-size: 13.8px; line-height: 1.6; color: var(--ink); padding-top: 2px; }
-
-    /* legacy step/ing aliases (build_recipe_card_html 호환) */
-    .step-item { display: flex; align-items: flex-start; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line-2); font-size: 13.8px; line-height: 1.6; color: var(--ink); }
-    .step-item:last-child { border-bottom: none; padding-bottom: 4px; }
-    .step-num { min-width: 26px; height: 26px; border-radius: 9px; flex-shrink: 0; background: var(--blue-soft); color: var(--blue-ink); display: flex; align-items: center; justify-content: center; font-size: 12.5px; font-weight: 800; margin-top: 1px; }
-    .ing-pill.have { border-color: #B7EACA; background: #F2FBF4; }
-
-    /* ============================================================
-       SHOPPING (Naver)
-       ============================================================ */
-    .shop-block { margin-top: 14px; }
-    .shop-head { display: flex; align-items: baseline; gap: 9px; flex-wrap: wrap; }
-    .shop-head-sub { font-size: 11.5px; color: var(--ink-3); font-weight: 600; }
-    .shop-ing-label {
-      display: flex; align-items: center; gap: 8px;
-      font-size: 13px; font-weight: 700; margin: 0 0 7px;
-      text-decoration: none; color: var(--ink);
-      padding: 2px 0; transition: color .12s ease;
-    }
-    .shop-ing-label:hover { color: var(--naver); }
-    .shop-ing-label:hover .shop-ing-name { text-decoration: underline; }
-    .shop-ing-name { color: var(--ink); }
-    .shop-item {
-      display: flex; align-items: center; gap: 11px;
-      background: var(--surface-2); border: 1px solid var(--line);
-      border-radius: var(--r-sm); padding: 10px 13px; margin-bottom: 6px;
-      text-decoration: none; color: var(--ink); transition: all .12s ease;
-    }
-    .shop-item:hover { border-color: var(--naver); background: #F2FBF5; transform: translateX(2px); }
-    .shop-title { font-size: 12.8px; font-weight: 600; line-height: 1.4; overflow: hidden;
-      text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
-    .shop-price { margin-left: auto; font-weight: 800; font-size: 13.5px; color: var(--ink); white-space: nowrap; font-family: var(--mono); }
-    .shop-search .shop-title { color: var(--ink-2); }
-
-    .save-path {
-      display: inline-flex; align-items: center; gap: 7px; margin-top: 10px;
-      background: var(--surface-3); border: 1px solid var(--line);
-      border-radius: var(--r-sm); padding: 6px 11px;
-      font-size: 11.5px; color: var(--ink-3); max-width: 100%;
-    }
-    .save-path svg { color: var(--ink-4); flex-shrink: 0; }
-    .save-path .mono { font-size: 11.5px; color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
-    /* ============================================================
-       COMPOSER
-       ============================================================ */
-    .composer-wrap { border-top: 1px solid var(--line); background: rgba(255,255,255,.9); backdrop-filter: blur(8px); padding: 14px 26px 18px; }
-    .composer { max-width: 760px; margin: 0 auto; display: flex; align-items: flex-end; gap: 10px; }
-    .composer-box {
-      flex: 1; display: flex; align-items: center; gap: 10px;
-      background: var(--surface); border: 1.5px solid var(--line-strong);
-      border-radius: var(--r-lg); padding: 6px 6px 6px 16px;
-      transition: border-color .14s ease, box-shadow .14s ease;
-    }
-    .composer-box:focus-within { border-color: var(--blue); box-shadow: 0 0 0 4px var(--blue-soft); }
-    .composer-input { flex: 1; border: none; outline: none; background: none; font-size: 14.5px; padding: 9px 0; color: var(--ink); }
-    .composer-input::placeholder { color: var(--ink-4); }
-    .composer-send {
-      width: 40px; height: 40px; border-radius: 12px; border: none; flex-shrink: 0;
-      background: var(--blue); color: #fff; display: grid; place-items: center;
-      transition: all .14s ease; box-shadow: var(--sh-blue);
-    }
-    .composer-send:hover { background: var(--blue-600); }
-    .composer-send:disabled { background: var(--line-strong); box-shadow: none; cursor: default; }
-    .composer-icon-btn { width: 40px; height: 40px; border-radius: 12px; border: none; background: none; color: var(--ink-3); display: grid; place-items: center; transition: all .12s; }
-    .composer-icon-btn:hover { background: var(--surface-3); color: var(--blue); }
-
-    /* ============================================================
-       HOME BOARD
-       ============================================================ */
-    .board { max-width: 1080px; margin: 0 auto; padding: 34px 34px 50px; }
-    .board-hero {
-      background:
-        radial-gradient(120% 140% at 88% -10%, rgba(47,107,255,.14) 0%, rgba(47,107,255,0) 50%),
-        linear-gradient(160deg, #1B47B8 0%, #2F6BFF 58%, #4F86FF 100%);
-      border-radius: var(--r-xl); padding: 34px 36px; color: #fff;
-      position: relative; overflow: hidden; box-shadow: var(--sh-lg);
-    }
-    .board-hero::after {
-      content: ""; position: absolute; right: -40px; bottom: -60px;
-      width: 280px; height: 280px; border-radius: 50%;
-      background: radial-gradient(circle, rgba(255,255,255,.16) 0%, rgba(255,255,255,0) 70%);
-    }
-    .bh-eyebrow { font-size: 12.5px; font-weight: 700; opacity: .85; letter-spacing: 0.04em; }
-    .bh-title { font-size: 30px; font-weight: 800; margin: 9px 0 8px; letter-spacing: -0.03em; line-height: 1.18; }
-    .bh-sub { font-size: 14.5px; opacity: .9; line-height: 1.6; max-width: 460px; }
-    .bh-cta { margin-top: 22px; display: flex; gap: 11px; flex-wrap: wrap; position: relative; z-index: 2; }
-    .bh-btn {
-      display: inline-flex; align-items: center; gap: 8px;
-      background: #fff; color: var(--blue-ink); font-weight: 800; font-size: 14px;
-      padding: 13px 20px; border: none; border-radius: var(--r-md);
-      box-shadow: 0 8px 22px rgba(0,0,0,.18); transition: transform .13s ease;
-    }
-    .bh-btn:hover { transform: translateY(-2px); }
-    .bh-btn.ghost { background: rgba(255,255,255,.16); color: #fff; box-shadow: none; }
-    .bh-btn.ghost:hover { background: rgba(255,255,255,.26); }
-
-    .board-row { display: flex; align-items: baseline; justify-content: space-between; margin: 34px 0 16px; }
-    .board-row h2 { font-size: 18px; font-weight: 800; letter-spacing: -0.02em; margin: 0; color: var(--ink); }
-    .board-row .link { font-size: 13px; font-weight: 700; color: var(--blue); background: none; border: none; display: flex; align-items: center; gap: 4px; }
-    .board-row .link:hover { color: var(--blue-700); }
-
-    .stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 20px; }
-    .stat-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md); padding: 16px 18px; box-shadow: var(--sh-xs); }
-    .stat-ic { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; margin-bottom: 11px; font-size: 17px; }
-    .stat-v { font-size: 23px; font-weight: 800; letter-spacing: -0.02em; font-family: var(--mono); color: var(--ink); }
-    .stat-k { font-size: 12.5px; color: var(--ink-3); font-weight: 600; margin-top: 1px; }
-
-    .recipe-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-    .r-tile {
-      background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg);
-      overflow: hidden; box-shadow: var(--sh-xs); transition: all .16s ease; text-align: left;
-      cursor: pointer; display: flex; flex-direction: column;
-    }
-    .r-tile:hover { box-shadow: var(--sh-md); transform: translateY(-3px); border-color: var(--line-strong); }
-    .r-tile-hero { height: 116px; position: relative; }
-    .r-tile-badge {
-      position: absolute; top: 10px; left: 10px;
-      display: inline-flex; align-items: center; gap: 5px;
-      font-size: 11px; font-weight: 700; padding: 4px 9px; border-radius: var(--r-pill);
-      background: rgba(255,255,255,.92); backdrop-filter: blur(4px); box-shadow: var(--sh-xs);
-    }
-    .badge-cart { color: var(--amber-ink); }
-    .badge-done { color: var(--green-ink); }
-    .r-tile-body { padding: 13px 15px 15px; flex: 1; display: flex; flex-direction: column; }
-    .r-tile-name { font-size: 15px; font-weight: 800; letter-spacing: -0.02em; color: var(--ink); }
-    .r-tile-intro { font-size: 12.5px; color: var(--ink-3); margin: 5px 0 11px; line-height: 1.5;
-      overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; flex: 1; }
-    .r-tile-foot { display: flex; gap: 12px; align-items: center; font-size: 11.5px; color: var(--ink-3); font-weight: 600; }
-    .r-tile-foot span { display: flex; align-items: center; gap: 4px; }
-
-    .recipe-list { display: flex; flex-direction: column; gap: 8px; }
-    .r-listrow {
-      display: flex; align-items: center; gap: 14px; cursor: pointer;
-      background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md);
-      padding: 12px 16px; box-shadow: var(--sh-xs); transition: all .14s ease; text-align: left;
-    }
-    .r-listrow:hover { box-shadow: var(--sh-sm); border-color: var(--line-strong); transform: translateX(2px); }
-    .r-listrow-thumb { width: 46px; height: 46px; border-radius: 11px; flex-shrink: 0; }
-    .r-listrow-name { font-size: 14.5px; font-weight: 700; color: var(--ink); }
-    .r-listrow-intro { font-size: 12px; color: var(--ink-3); margin-top: 2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width: 420px; }
-
-    /* ============================================================
-       KITCHEN
-       ============================================================ */
-    .kitchen { max-width: 880px; margin: 0 auto; padding: 30px 30px 50px; }
-    .k-panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); box-shadow: var(--sh-xs); margin-bottom: 18px; overflow: hidden; }
-    .k-panel-head { padding: 18px 22px; border-bottom: 1px solid var(--line-2); display: flex; align-items: center; gap: 12px; }
-    .k-panel-ic { width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; flex-shrink: 0; font-size: 18px; }
-    .k-panel-title { font-size: 15.5px; font-weight: 800; color: var(--ink); }
-    .k-panel-sub { font-size: 12.5px; color: var(--ink-3); margin-top: 1px; }
-    .k-panel-body { padding: 18px 22px 22px; }
-
-    .ing-chips { display: flex; flex-wrap: wrap; gap: 9px; }
-    .k-ing {
-      display: inline-flex; align-items: center; gap: 8px;
-      background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-pill);
-      padding: 8px 9px 8px 14px; font-size: 13.5px; font-weight: 600; color: var(--ink);
-    }
-    .k-ing .amt { font-family: var(--mono); font-size: 12px; color: var(--ink-2); background: var(--surface-3); padding: 2px 8px; border-radius: var(--r-pill); }
-    .k-ing .x { width: 19px; height: 19px; border-radius: 50%; border: none; background: none; color: var(--ink-4); display: grid; place-items: center; }
-    .k-ing .x:hover { background: var(--rose-soft); color: var(--rose); }
-    .k-add {
-      display: inline-flex; align-items: center; gap: 6px;
-      background: none; border: 1.5px dashed var(--line-strong); color: var(--ink-3);
-      border-radius: var(--r-pill); padding: 8px 15px; font-size: 13px; font-weight: 600;
-    }
-    .k-add:hover { border-color: var(--blue); color: var(--blue); }
-
-    .pref-list { display: flex; flex-direction: column; gap: 8px; }
-    .pref-row {
-      display: flex; align-items: center; gap: 11px;
-      background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-md); padding: 11px 14px;
-    }
-    .pref-ic { width: 24px; height: 24px; border-radius: 7px; display: grid; place-items: center; flex-shrink: 0; font-size: 14px; }
-    .pref-tx { font-size: 13.8px; font-weight: 600; color: var(--ink); }
-    .pref-row .x { margin-left: auto; width: 22px; height: 22px; border-radius: 6px; border: none; background: none; color: var(--ink-4); display: grid; place-items: center; }
-    .pref-row .x:hover { background: var(--rose-soft); color: var(--rose); }
-
-    .complete-line { display: flex; align-items: center; gap: 10px; padding: 9px 0; font-size: 13.5px; border-bottom: 1px solid var(--line-2); }
-    .complete-line .nm { font-weight: 700; }
-    .complete-line .chg { margin-left: auto; font-family: var(--mono); font-size: 12.5px; color: var(--ink-2); }
-    .complete-line .chg b { color: var(--green-ink); }
-    .cl-ic { width: 22px; height: 22px; border-radius: 6px; display: grid; place-items: center; flex-shrink: 0; }
-
-    /* ============================================================
-       MISC
-       ============================================================ */
-    .empty { text-align: center; padding: 50px 20px; color: var(--ink-3); }
-    .empty-ic { width: 60px; height: 60px; border-radius: 16px; background: var(--surface-3); display: grid; place-items: center; margin: 0 auto 16px; color: var(--ink-4); font-size: 26px; }
-    .fade-up { animation: fadeUp .42s cubic-bezier(.16,1,.3,1) both; }
-    @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-    .spin { animation: spin 0.9s linear infinite; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    .divider-soft { height: 1px; background: var(--line-2); margin: 14px 0; }
-    .tag { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; font-weight: 700; padding: 3px 9px; border-radius: var(--r-pill); }
-    .tag-blue { background: var(--blue-soft); color: var(--blue-ink); }
-    .tag-green { background: var(--green-soft); color: var(--green-ink); }
-    .tag-amber { background: var(--amber-soft); color: var(--amber-ink); }
-
-    .suggest-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 16px 48px; align-items: center; }
-    .suggest-label { font-size: 11.5px; font-weight: 700; color: var(--ink-4); }
-    .suggest-chip {
-      display: inline-flex; align-items: center; gap: 5px;
-      background: var(--surface-3); border: 1px solid var(--line); color: var(--ink-2);
-      font-weight: 600; font-size: 12.5px; padding: 6px 12px; border-radius: var(--r-pill);
-      transition: all .12s ease;
-    }
-    .suggest-chip:hover { border-color: var(--blue); color: var(--blue-ink); background: var(--blue-soft); }
-
-    /* inline SVG icons (icons.jsx 이식) */
-    .icon-inline { display: inline-flex; vertical-align: middle; }
-
-    /* ============================================================
-       사이드바 Streamlit 버튼 → 디자인 nav/recipe 스타일 오버라이드
-       st-key-<key> 래퍼 클래스로 정밀 타겟팅 (Streamlit 1.57)
-       ============================================================ */
-    /* nav/recipe 숨겨진 트리거 버튼 — 완전히 숨김 (components.html JS로만 트리거) */
-    .st-key-nav_home, .st-key-nav_chat, .st-key-nav_kitchen,
-    [class*="st-key-sb_recipe_"] {
-        height: 0 !important; overflow: hidden !important;
-        margin: 0 !important; padding: 0 !important; min-height: 0 !important;
-    }
-    /* home CTA 숨겨진 버튼 */
-    .st-key-home_cta_new, .st-key-home_cta_kitchen {
-        height: 0 !important; overflow: hidden !important;
-        margin: 0 !important; padding: 0 !important; min-height: 0 !important;
-    }
-    /* 패턴 B: JS(components.html)로 트리거되는 hidden buttons (완전히 숨김) */
-    [class*="st-key-tile_"],
-    .st-key-home_link_kitchen,
-    [class*="st-key-del_ing_"], [class*="st-key-del_pref_"],
-    [class*="st-key-kitchen_complete_"] {
-        height: 0 !important; overflow: hidden !important;
-        margin: 0 !important; padding: 0 !important; min-height: 0 !important;
-    }
-    /* '새 레시피 만들기' — sb-new 스타일 유지 */
-    .st-key-sb_new_recipe .stButton > button {
-        background: var(--blue) !important; color: #fff !important; border: none !important;
-        box-shadow: var(--sh-blue) !important; font-weight: 700 !important;
-        border-radius: var(--r-md) !important; padding: 11px 14px !important;
-    }
-    .st-key-sb_new_recipe .stButton > button:hover { background: var(--blue-600) !important; }
-
-    /* 완료 처리 버튼 (btn-green) */
-    [class*="st-key-kitchen_complete_"] .stButton > button {
-        background: var(--green) !important; color: #fff !important; border: none !important;
-        box-shadow: 0 6px 18px rgba(21,168,98,.26) !important;
-    }
-    [class*="st-key-kitchen_complete_"] .stButton > button:hover { background: var(--green-ink) !important; }
-
-    /* ============================================================
-       채팅 quick-reply 칩 (.chip) — 인분/요청 버튼
-       ============================================================ */
-    [class*="st-key-serv_"] .stButton > button,
-    [class*="st-key-pref_"] .stButton > button {
-        background: var(--surface) !important;
-        border: 1.5px solid var(--blue-soft-2) !important;
-        color: var(--blue-ink) !important;
-        border-radius: var(--r-pill) !important;
-        font-weight: 600 !important; font-size: 13px !important;
-        box-shadow: none !important;
-    }
-    [class*="st-key-serv_"] .stButton > button:hover,
-    [class*="st-key-pref_"] .stButton > button:hover {
-        border-color: var(--blue) !important; background: var(--blue-soft) !important;
-        transform: translateY(-1px);
-    }
-
-    /* ============================================================
-       패턴 A: pure st.button() + CSS 오버라이드 (visible 버튼)
-       ============================================================ */
-    /* 레시피 확정 - btn-primary */
-    .st-key-confirm_recipe .stButton > button {
-        background: var(--blue) !important; color: #fff !important;
-        border: none !important; border-radius: var(--r-md) !important;
-        box-shadow: var(--sh-blue) !important; font-weight: 700 !important;
-        font-size: 13.5px !important; padding: 10px 20px !important;
-    }
-    .st-key-confirm_recipe .stButton > button:hover { background: var(--blue-600) !important; }
-
-    /* ghost 버튼들 */
-    .st-key-request_revision .stButton > button,
-    .st-key-reanalyze_btn .stButton > button,
-    .st-key-go_kitchen_btn .stButton > button,
-    .st-key-restart_btn .stButton > button,
-    .st-key-cancel_revision .stButton > button,
-    .st-key-send_revision .stButton > button {
-        background: var(--surface) !important; color: var(--ink) !important;
-        border: 1px solid var(--line-strong) !important; border-radius: var(--r-md) !important;
-        box-shadow: var(--sh-xs) !important; font-weight: 700 !important;
-        font-size: 13.5px !important; padding: 10px 16px !important;
-    }
-
-    /* 전송 버튼 */
-    .st-key-servings_submit .stButton > button,
-    .st-key-extra_submit .stButton > button {
-        background: var(--blue) !important; color: #fff !important;
-        border: none !important; border-radius: var(--r-md) !important;
-        font-weight: 700 !important;
-    }
-
-    /* 이미지 분석 시작 버튼 */
-    .st-key-analyze_start .stButton > button {
-        background: var(--blue) !important; color: #fff !important;
-        border: none !important; border-radius: var(--r-md) !important;
-        box-shadow: var(--sh-blue) !important; font-weight: 700 !important;
-    }
-
-    /* 사진 분석 시작 버튼 (현재 key 없이 type=primary 사용 중) */
-    [data-testid="stBaseButton-primary"] {
-        background: var(--blue) !important;
-        border-color: var(--blue) !important;
-    }
-    [data-testid="stBaseButton-primary"]:hover {
-        background: var(--blue-600) !important;
-        border-color: var(--blue-600) !important;
-    }
-
-    .sb-nav-item, .sb-brand-name, .sb-brand-sub, .topbar-title, .topbar-sub,
-    .bh-btn, .chip, .suggest-chip, .r-tile-badge, .tag, .r-tile-foot span,
-    .rc-meta-k, .rc-meta-v, .board-row h2, .board-row .link, .k-panel-title,
-    .sb-recipe-name, .stat-k, .stat-v, .topbar-status { white-space: nowrap; }
-
-    /* ============================================================
-       KITCHEN — 재료/취향 입력창 composer 스타일
-       ============================================================ */
-    .st-key-new_ing_input .stTextInput > div,
-    .st-key-new_pref_input .stTextInput > div {
-        border: 1.5px solid var(--line-strong) !important;
-        border-radius: var(--r-lg) !important;
-        background: var(--surface) !important;
-        padding: 2px 4px 2px 14px !important;
-        box-shadow: none !important;
-    }
-    .st-key-new_ing_input .stTextInput > div:focus-within,
-    .st-key-new_pref_input .stTextInput > div:focus-within {
-        border-color: var(--blue) !important;
-        box-shadow: 0 0 0 3px var(--blue-soft) !important;
-    }
-    .st-key-new_ing_input .stTextInput input,
-    .st-key-new_pref_input .stTextInput input {
-        border: none !important; padding: 8px 0 !important;
-        font-size: 13.5px !important; background: transparent !important;
-    }
-    /* + 추가 버튼 → btn-soft */
-    .st-key-add_ing_btn .stButton > button {
-        background: var(--blue-soft) !important; color: var(--blue-ink) !important;
-        border: none !important; border-radius: var(--r-sm) !important;
-        padding: 7px 13px !important; font-size: 12.5px !important; font-weight: 700 !important;
-    }
-    .st-key-add_ing_btn .stButton > button:hover { background: var(--blue-soft-2) !important; }
-    /* + 취향 추가 버튼 → k-add 스타일 */
-    .st-key-add_pref_btn .stButton > button {
-        background: none !important; color: var(--ink-3) !important;
-        border: 1.5px dashed var(--line-strong) !important;
-        border-radius: var(--r-pill) !important;
-        padding: 8px 15px !important; font-size: 13px !important; font-weight: 600 !important;
-    }
-    .st-key-add_pref_btn .stButton > button:hover {
-        border-color: var(--blue) !important; color: var(--blue) !important;
-    }
-    /* 취향 추가/취소 버튼 */
-    .st-key-confirm_add_pref .stButton > button {
-        background: var(--blue) !important; color: #fff !important;
-        border: none !important; border-radius: var(--r-sm) !important;
-        font-weight: 700 !important;
-    }
-    .st-key-cancel_add_pref .stButton > button {
-        background: var(--surface) !important; color: var(--ink) !important;
-        border: 1px solid var(--line-strong) !important; border-radius: var(--r-sm) !important;
-    }
-    /* topbar 위 여백 제거 (stHeader 숨긴 후) */
-    [data-testid="stAppViewContainer"] > section { padding-top: 0 !important; }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
+# ─────────────────────── CSS ───────────────────────
+def load_css() -> None:
+    """src/style.css를 읽어 Streamlit에 주입한다."""
+    css_path = Path(__file__).parent / "style.css"
+    with open(css_path, "r", encoding="utf-8") as f:
+        st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+
+
+load_css()
 
 
 # ─────────────────────────── SVG 아이콘 시스템 (icons.jsx 이식) ───────────────────────────
@@ -1794,6 +1033,9 @@ def reset_all():
         "recipe_confirmed": False,
         "awaiting_revision": False,
         "reanalyze_pending": False,
+        "_pending_analyze": False,
+        "_pending_recipe": False,
+        "_last_file_name": None,
         "viewing_recipe": None,
         "cart_selected_path": None,
         "cart_completion_result": None,
@@ -1860,6 +1102,18 @@ def render_chat_history():
             </div>''',
                 unsafe_allow_html=True,
             )
+
+    # 타이핑 인디케이터
+    if st.session_state.get("_typing"):
+        st.markdown(
+            """<div class="msg-ai">
+          <div class="msg-ai-avatar" style="font-size:17px">🍽️</div>
+          <div class="bubble-ai">
+            <div class="typing"><i></i><i></i><i></i></div>
+          </div>
+        </div>""",
+            unsafe_allow_html=True,
+        )
 
 
 def build_recipe_card_html(recipe: dict) -> str:
@@ -2046,30 +1300,37 @@ def render_sidebar():
                 pass
 
         if not _all_items:
-            st.caption("아직 저장된 레시피가 없어요.")
+            st.markdown(
+                '<div style="font-size:12.5px;color:var(--ink-3);padding:6px 10px">아직 저장된 레시피가 없어요.</div>',
+                unsafe_allow_html=True,
+            )
         else:
             for _item in _all_items[:10]:
                 _is_cart = _item["kind"] == "cart"
-                _dot = "dot-cart" if _is_cart else "dot-done"
                 _saved_at = str((_item.get("data") or {}).get("saved_at") or "").strip()
                 _meta = ("장바구니 · " + _saved_at) if (_is_cart and _saved_at) else (
                     "장바구니 · 대기" if _is_cart else "보관함 · 완료"
                 )
-                _name = html.escape(str(_item["dish_name"]))
+                _name = str(_item["dish_name"])[:16]
                 _safe_key = _tile_key(_item["path"])
-                # HTML 시각(data-recipe 속성) + components.html JS → 숨겨진 st.button
+                # 비주얼 HTML (디자인 유지)
                 st.markdown(
-                    f'<div class="sb-recipe" data-recipe="{_safe_key}" style="cursor:pointer">'
-                    f'<div class="sb-recipe-thumb">🍽️</div>'
-                    f'<div style="min-width:0;flex:1">'
-                    f'<div class="sb-recipe-name">{_name}</div>'
-                    f'<div class="sb-recipe-meta">{_meta}</div>'
-                    f'</div>'
-                    f'<span class="sb-status-dot {_dot}"></span>'
-                    f'</div>',
+                    f"""<div class="sb-recipe-wrap" style="pointer-events:none">
+                      <div class="sb-recipe-thumb">🍽️</div>
+                      <div style="min-width:0;flex:1">
+                        <div class="sb-recipe-name">{html.escape(_name)}</div>
+                        <div class="sb-recipe-meta">{html.escape(_meta)}</div>
+                      </div>
+                      <span class="sb-status-dot {'dot-cart' if _is_cart else 'dot-done'}"></span>
+                    </div>""",
                     unsafe_allow_html=True,
                 )
-                if st.button("_r", key=f"sb_recipe_{_safe_key}", use_container_width=True):
+                # 투명 오버레이 버튼 (클릭 처리)
+                if st.button(
+                    "​",
+                    key=f"sb_recipe_{_safe_key}",
+                    use_container_width=True,
+                ):
                     st.session_state["view"] = "chat"
                     st.session_state["load_recipe_pending"] = _item["data"]
                     st.session_state["viewing_recipe"] = _item["path"]
@@ -2083,7 +1344,7 @@ def render_sidebar():
             <div class="sb-foot">
               <div class="sb-avatar">AI</div>
               <div style="min-width:0;flex:1">
-                <div class="sb-brand-name" style="font-size:13px;font-weight:700">내 주방</div>
+                <div style="font-size:13px;font-weight:700;color:var(--ink)">내 주방</div>
                 <div class="sb-brand-sub">{GEMINI_TEXT_MODEL}</div>
               </div>
             </div>
@@ -2091,7 +1352,17 @@ def render_sidebar():
             unsafe_allow_html=True,
         )
 
-        # ── 패턴 B: nav/recipe data 속성 → hidden st.button 연결 ──
+        # ============================================================
+        # DEV MODE — 프로덕션 배포 전 이 블록 전체 삭제
+        # ============================================================
+        if st.button("⚙", key="_dev_toggle_btn", help="개발 모드"):
+            st.session_state["_dev_mode"] = not st.session_state.get("_dev_mode", False)
+            st.rerun()
+        # ============================================================
+        # DEV MODE END
+        # ============================================================
+
+        # nav data-nav 속성 → hidden nav 버튼 연결 (recipe는 이제 직접 st.button 사용)
         components.html(
             """
 <script>
@@ -2107,17 +1378,9 @@ def render_sidebar():
         if (btn) btn.click();
       });
     });
-    doc.querySelectorAll('[data-recipe]').forEach(function(el) {
-      if (el.dataset.bound) return;
-      el.dataset.bound = '1';
-      el.addEventListener('click', function() {
-        var bn = el.getAttribute('data-recipe');
-        var btn = doc.querySelector('.st-key-sb_recipe_' + bn + ' button');
-        if (btn) btn.click();
-      });
-    });
   }
-  setTimeout(attach, 80);
+  setTimeout(attach, 100);
+  setTimeout(attach, 500);
 })();
 </script>
 """,
@@ -2352,81 +1615,6 @@ def render_home_view():
 # 내 주방
 # ═══════════════════════════════════════════════════════════════════════════
 @st.dialog("완료 처리")
-def _show_completion_dialog():
-    """완료 처리 다이얼로그: 재료 차감 내역 확인 후 확정."""
-    comp_target = st.session_state.get("kitchen_complete_target")
-    comp = st.session_state.get("kitchen_complete_result")
-    if not comp_target or not comp:
-        st.rerun()
-        return
-
-    # 레시피 이름
-    try:
-        with open(comp_target, encoding="utf-8") as _f:
-            _rdata = json.load(_f)
-        _dish = html.escape(str(_rdata.get("dish_name") or "레시피"))
-    except Exception:
-        _dish = "레시피"
-
-    st.markdown(f"**{_dish}** — 사용한 재료를 주방에서 자동 차감해요")
-
-    _used = comp.get("used", [])
-    _blocked = comp.get("blocked", [])
-    _missing_c = comp.get("missing", [])
-
-    if _used:
-        st.markdown("**✓ 자동 차감**")
-        _lines = ""
-        for it in _used:
-            _lines += (
-                f'<div class="complete-line">'
-                f'<span class="cl-ic" style="background:var(--green-soft);color:var(--green)">'
-                f'{icon("check", 14)}</span>'
-                f'<span class="nm">{html.escape(it["name"])}</span>'
-                f'<span style="font-size:12.5px;color:var(--ink-3)">{html.escape(it["amount"])}</span>'
-                f'<span class="chg">{html.escape(it["before"])} → <b>{html.escape(it["after"])}</b></span>'
-                f'</div>'
-            )
-        st.markdown(_lines, unsafe_allow_html=True)
-
-    if _blocked:
-        st.markdown("**⚠ 자동 차감 불가**")
-        for it in _blocked:
-            st.caption(f"- {it['name']}: {it['reason']}")
-
-    if _missing_c:
-        st.markdown("**추가 준비 필요**")
-        for it in _missing_c:
-            _a = it.get("amount", "")
-            st.caption(f"- {it['name']}{f'({_a})' if _a else ''}")
-
-    st.divider()
-
-    _dc1, _dc2 = st.columns(2)
-    with _dc1:
-        if st.button("취소", use_container_width=True, key="dialog_cancel"):
-            st.session_state["kitchen_complete_target"] = None
-            st.session_state["kitchen_complete_result"] = None
-            st.session_state["kitchen_source_edit_mode"] = False
-            st.rerun()
-    with _dc2:
-        if st.button("완료 확정 · 재료 차감", type="primary", use_container_width=True, key="dialog_confirm"):
-            _used_count = len(comp.get("used", []))
-            save_source_data_to_md(comp["updated_source"])
-            save_to_completed(comp_target, comp)
-            st.session_state["kitchen_complete_success_msg"] = (
-                f"✅ 완료! 재료 {_used_count}개가 업데이트됐어요."
-            )
-            st.session_state["kitchen_complete_target"] = None
-            st.session_state["kitchen_complete_result"] = None
-            st.session_state["kitchen_source_edit_mode"] = False
-            st.session_state["kitchen_source_edit_data"] = None
-            _new_src = parse_source_md_to_data()
-            st.session_state["kitchen_ingredients"] = list(_new_src["ingredients"])
-            st.rerun()
-
-
-@st.dialog("완료 처리")
 def _show_completion_dialog() -> None:
     """완료 처리 모달: 재료 차감 내역 확인 후 확정."""
     comp_target = st.session_state.get("kitchen_complete_target")
@@ -2463,13 +1651,30 @@ def _show_completion_dialog() -> None:
         st.markdown(_lines_html, unsafe_allow_html=True)
     if _blocked_d:
         st.markdown("**⚠ 자동 차감 불가**")
+        _blocked_html = ""
         for _it in _blocked_d:
-            st.caption(f"- {_it['name']}: {_it['reason']}")
+            _blocked_html += (
+                f'<div class="complete-line">'
+                f'<span class="cl-ic" style="background:var(--amber-soft);color:var(--amber)">⚠</span>'
+                f'<span class="nm">{html.escape(_it["name"])}</span>'
+                f'<span class="chg">{html.escape(_it["reason"])}</span>'
+                f'</div>'
+            )
+        st.markdown(_blocked_html, unsafe_allow_html=True)
     if _missing_d:
         st.markdown("**구매 필요**")
+        _missing_html = ""
         for _it in _missing_d:
-            _a = _it.get("amount", "")
-            st.caption(f"- {_it['name']}{f'({_a})' if _a else ''}")
+            _a = html.escape(_it.get("amount", ""))
+            _n = html.escape(_it["name"])
+            _missing_html += (
+                f'<div class="complete-line">'
+                f'<span class="cl-ic" style="background:var(--amber-soft);color:var(--amber-ink)">구매</span>'
+                f'<span class="nm">{_n}</span>'
+                f'{f"<span class=chr>{_a}</span>" if _a else ""}'
+                f'</div>'
+            )
+        st.markdown(_missing_html, unsafe_allow_html=True)
 
     st.divider()
     _dc1, _dc2 = st.columns(2)
@@ -2528,28 +1733,11 @@ def render_kitchen_view():
     if _cart_items:
         _comp_target = st.session_state.get("kitchen_complete_target")
 
-        # recipe-list 행들 HTML 구성 (각 완료 처리 버튼은 data-complete → components.html JS)
-        _rows_html = ""
-        for ci in _cart_items:
-            _ci_name = html.escape(str(ci.get("dish_name") or "레시피"))
-            _ci_ings = len((ci.get("data") or {}).get("ingredients") or [])
-            _ci_time = html.escape(str((ci.get("data") or {}).get("cooking_time") or "-"))
-            _safe_key = _tile_key(ci["path"])
-            _rows_html += f"""
-            <div class="r-listrow" style="cursor:default">
-              <div class="r-listrow-thumb ph" style="display:grid;place-items:center;font-size:22px">🍽️</div>
-              <div style="min-width:0;flex:1">
-                <div class="r-listrow-name">{_ci_name}</div>
-                <div class="r-listrow-intro">재료 {_ci_ings}개 · {_ci_time}</div>
-              </div>
-              <button class="btn btn-green btn-sm" data-complete="{_safe_key}" style="cursor:pointer">
-                {icon("check", 15)} 완료 처리
-              </button>
-            </div>"""
-
+        # ── 완료 처리 대기 패널: k-panel 헤더 + st.columns 행 (직접 버튼, JS 불필요) ──
         st.markdown(
             f"""
-        <div class="k-panel fade-up">
+        <div class="k-panel fade-up" style="border-bottom-left-radius:0;border-bottom-right-radius:0;
+             border-bottom:none;margin-bottom:0">
           <div class="k-panel-head">
             <div class="k-panel-ic" style="background:var(--amber-soft);color:var(--amber-ink)">{icon("cart", 19)}</div>
             <div style="flex:1">
@@ -2558,27 +1746,46 @@ def render_kitchen_view():
             </div>
             <span class="tag tag-amber">{len(_cart_items)}개</span>
           </div>
-          <div class="k-panel-body" style="padding-top:14px">
-            <div class="recipe-list">{_rows_html}</div>
-          </div>
         </div>
         """,
             unsafe_allow_html=True,
         )
 
-        # 숨겨진 완료 처리 트리거 버튼들
+        # 각 레시피 행: st.columns 로 이름 + "레시피 보기" + "완료 처리"
         for ci in _cart_items:
             _safe_key = _tile_key(ci["path"])
-            if st.button("_", key=f"kitchen_complete_{_safe_key}", use_container_width=True):
-                st.session_state["kitchen_complete_target"] = ci["path"]
-                _sd = parse_source_md_to_data()
-                _res = calculate_source_update(ci["data"], _sd)
-                st.session_state["kitchen_complete_result"] = _res
-                st.session_state["kitchen_source_edit_data"] = _sd
-                st.session_state["kitchen_source_edit_mode"] = False
-                st.rerun()
+            _ci_name = str(ci.get("dish_name") or "레시피")
+            _ci_ings = len((ci.get("data") or {}).get("ingredients") or [])
+            _ci_time = str((ci.get("data") or {}).get("cooking_time") or "-")
+            _c_info, _c_view, _c_done = st.columns([4, 1.5, 1.5])
+            with _c_info:
+                st.markdown(
+                    f'<div style="padding:10px 0 10px 16px">'
+                    f'<div class="r-listrow-name">{html.escape(_ci_name)}</div>'
+                    f'<div class="r-listrow-intro">재료 {_ci_ings}개 · {html.escape(_ci_time)}</div>'
+                    f'</div>',
+                    unsafe_allow_html=True,
+                )
+            with _c_view:
+                if st.button("레시피 보기", key=f"view_recipe_{_safe_key}", use_container_width=True):
+                    st.session_state["view"] = "chat"
+                    st.session_state["load_recipe_pending"] = ci["data"]
+                    st.session_state["viewing_recipe"] = ci["path"]
+                    st.session_state["cart_selected_path"] = ci["path"]
+                    st.rerun()
+            with _c_done:
+                if st.button("✓ 완료 처리", key=f"kitchen_complete_{_safe_key}",
+                             type="primary", use_container_width=True):
+                    st.session_state["kitchen_complete_target"] = ci["path"]
+                    _sd = parse_source_md_to_data()
+                    _res = calculate_source_update(ci["data"], _sd)
+                    st.session_state["kitchen_complete_result"] = _res
+                    st.session_state["kitchen_source_edit_data"] = _sd
+                    st.session_state["kitchen_source_edit_mode"] = False
+                    st.rerun()
 
         # 완료 처리 dialog는 render_kitchen_view 상단에서 _show_completion_dialog()로 열림
+        st.markdown('<div style="height:16px"></div>', unsafe_allow_html=True)
 
     # ── 보유 재료 패널 (Bug #26 수정) ──
     _ings = st.session_state.get("kitchen_ingredients") or []
@@ -2603,56 +1810,50 @@ def render_kitchen_view():
     else:
         _chips_block = '<div style="font-size:13px;color:var(--ink-3)">아직 등록된 재료가 없어요.</div>'
 
-    st.markdown(
-        f"""
-    <div class="k-panel fade-up" style="margin-top:18px">
-      <div class="k-panel-head">
-        <div class="k-panel-ic" style="background:var(--green-soft);color:var(--green-ink)">{icon("leaf", 19)}</div>
-        <div style="flex:1">
-          <div class="k-panel-title">보유 재료</div>
-          <div class="k-panel-sub">재료명(양) 형식으로 적어주세요 · 양은 g, ml로 통일</div>
+    # ── 보유 재료 패널: st.container로 header+chips+input 하나의 카드로 ──
+    st.markdown('<div style="margin-top:18px"></div>', unsafe_allow_html=True)
+    with st.container(border=True):
+        st.markdown(
+            f"""
+        <div class="k-panel-head" style="padding:18px 6px 14px">
+          <div class="k-panel-ic" style="background:var(--green-soft);color:var(--green-ink)">{icon("leaf", 19)}</div>
+          <div style="flex:1">
+            <div class="k-panel-title">보유 재료</div>
+            <div class="k-panel-sub">재료명(양) 형식으로 적어주세요 · 양은 g, ml로 통일</div>
+          </div>
+          <span class="tag tag-green">{_ing_count}개</span>
         </div>
-        <span class="tag tag-green">{_ing_count}개</span>
-      </div>
-      <div class="k-panel-body">
-        {_chips_block}
-      </div>
-    </div>
-    """,
-        unsafe_allow_html=True,
-    )
-
-    # 재료 추가 입력 — composer-box 스타일 (k-panel-body 직후, st 위젯)
-    _ic1, _ic2 = st.columns([5, 1])
-    with _ic1:
-        _new_ing = st.text_input(
-            "새 재료",
-            key="new_ing_input",
-            placeholder="예: 당근(2개)",
-            label_visibility="collapsed",
+        <div style="height:1px;background:var(--line-2);margin:0 -16px"></div>
+        <div style="padding:14px 6px 6px">{_chips_block}</div>
+        """,
+            unsafe_allow_html=True,
         )
-    with _ic2:
-        if st.button("+ 추가", key="add_ing_btn", use_container_width=True):
-            if _new_ing.strip():
-                # Bug #26 핵심: _parse_ingredient_string() 으로 단일 dict 생성 (단위 분리 금지)
-                _parsed = _parse_ingredient_string(_new_ing.strip())
-                st.session_state["kitchen_ingredients"].append(_parsed)
-                _save_kitchen_to_source()
-                st.rerun()
+        _ic1, _ic2 = st.columns([5, 1])
+        with _ic1:
+            _new_ing = st.text_input(
+                "새 재료", key="new_ing_input",
+                placeholder="예: 당근(2개)", label_visibility="collapsed",
+            )
+        with _ic2:
+            if st.button("+ 추가", key="add_ing_btn", use_container_width=True):
+                if _new_ing.strip():
+                    _parsed = _parse_ingredient_string(_new_ing.strip())
+                    st.session_state["kitchen_ingredients"].append(_parsed)
+                    _save_kitchen_to_source()
+                    st.rerun()
 
-    # 숨겨진 재료 삭제 트리거 버튼들 (JS onclick 대상)
+    # 숨겨진 재료 삭제 트리거 버튼들
     for i in range(len(_ings)):
         if st.button("_", key=f"del_ing_{i}", use_container_width=True):
             st.session_state["kitchen_ingredients"].pop(i)
             _save_kitchen_to_source()
             st.rerun()
 
-    # ── 사용자 취향 패널 (Bug #27 수정) ──
+    # ── 사용자 취향 패널: st.container로 header+pref list+add 버튼 하나의 카드로 ──
     _prefs = st.session_state.get("kitchen_preferences") or []
     _pref_count = len(_prefs)
     _adding_pref = st.session_state.get("adding_pref_mode", False)
 
-    # 취향 목록 HTML 구성 — × 버튼은 data-del-pref → components.html JS → hidden st.button del_pref_{i}
     if _prefs:
         _pref_rows = ""
         for i, pref in enumerate(_prefs):
@@ -2666,58 +1867,54 @@ def render_kitchen_view():
             )
         _pref_block = f'<div class="pref-list">{_pref_rows}</div>'
     else:
-        _pref_block = '<div style="font-size:13px;color:var(--ink-3)">아직 등록된 취향이 없어요.</div>'
+        _pref_block = '<div style="font-size:13px;color:var(--ink-3);padding:4px 0">아직 등록된 취향이 없어요.</div>'
 
-    st.markdown(
-        f"""
-    <div class="k-panel fade-up" style="margin-top:18px">
-      <div class="k-panel-head">
-        <div class="k-panel-ic" style="background:var(--blue-soft);color:var(--blue-ink)">{icon("heart", 19)}</div>
-        <div style="flex:1">
-          <div class="k-panel-title">사용자 취향</div>
-          <div class="k-panel-sub">알러지·식단·선호 맛 — 모든 레시피에 자동 반영돼요</div>
+    st.markdown('<div style="margin-top:18px"></div>', unsafe_allow_html=True)
+    with st.container(border=True):
+        st.markdown(
+            f"""
+        <div class="k-panel-head" style="padding:18px 6px 14px">
+          <div class="k-panel-ic" style="background:var(--blue-soft);color:var(--blue-ink)">{icon("heart", 19)}</div>
+          <div style="flex:1">
+            <div class="k-panel-title">사용자 취향</div>
+            <div class="k-panel-sub">알러지·식단·선호 맛 — 모든 레시피에 자동 반영돼요</div>
+          </div>
+          <span class="tag tag-blue">{_pref_count}개</span>
         </div>
-        <span class="tag tag-blue">{_pref_count}개</span>
-      </div>
-      <div class="k-panel-body">
-        {_pref_block}
-      </div>
-    </div>
-    """,
-        unsafe_allow_html=True,
-    )
+        <div style="height:1px;background:var(--line-2);margin:0 -16px"></div>
+        <div style="padding:14px 6px 6px">{_pref_block}</div>
+        """,
+            unsafe_allow_html=True,
+        )
+        if not _adding_pref:
+            if st.button("+ 취향 추가", key="add_pref_btn"):
+                st.session_state["adding_pref_mode"] = True
+                st.rerun()
+        else:
+            _new_pref = st.text_input(
+                "새 취향", key="new_pref_input",
+                placeholder="예: 매운 음식 선호, 토마토 알러지",
+                label_visibility="collapsed",
+            )
+            _pc1, _pc2 = st.columns(2)
+            with _pc1:
+                if st.button("추가", type="primary", use_container_width=True, key="confirm_add_pref"):
+                    if _new_pref.strip():
+                        st.session_state["kitchen_preferences"].append(_new_pref.strip())
+                        _save_kitchen_to_source()
+                    st.session_state["adding_pref_mode"] = False
+                    st.rerun()
+            with _pc2:
+                if st.button("취소", use_container_width=True, key="cancel_add_pref"):
+                    st.session_state["adding_pref_mode"] = False
+                    st.rerun()
 
-    # 숨겨진 취향 삭제 트리거 버튼들 (JS onclick 대상)
+    # 숨겨진 취향 삭제 트리거 버튼들
     for i in range(len(_prefs)):
         if st.button("_", key=f"del_pref_{i}", use_container_width=True):
             st.session_state["kitchen_preferences"].pop(i)
             _save_kitchen_to_source()
             st.rerun()
-
-    # Bug #27: 취향 추가 버튼 + 편집 모드 (편집 가능한 text_input 표시)
-    if not _adding_pref:
-        if st.button("+ 취향 추가", key="add_pref_btn"):
-            st.session_state["adding_pref_mode"] = True
-            st.rerun()
-    else:
-        _new_pref = st.text_input(
-            "새 취향",
-            key="new_pref_input",
-            placeholder="예: 매운 음식 선호, 토마토 알러지",
-            label_visibility="collapsed",
-        )
-        _pc1, _pc2 = st.columns(2)
-        with _pc1:
-            if st.button("추가", type="primary", use_container_width=True, key="confirm_add_pref"):
-                if _new_pref.strip():
-                    st.session_state["kitchen_preferences"].append(_new_pref.strip())
-                    _save_kitchen_to_source()
-                st.session_state["adding_pref_mode"] = False
-                st.rerun()
-        with _pc2:
-            if st.button("취소", use_container_width=True, key="cancel_add_pref"):
-                st.session_state["adding_pref_mode"] = False
-                st.rerun()
 
     # ── 패턴 B: 완료처리/재료삭제/취향삭제 버튼 → hidden st.button 연결 ──
     components.html(
@@ -2726,17 +1923,6 @@ def render_kitchen_view():
 (function() {
   var doc = window.parent.document;
   function attach() {
-    // 완료 처리 버튼 (data-complete)
-    doc.querySelectorAll('[data-complete]').forEach(function(btn) {
-      if (btn.dataset.bound) return;
-      btn.dataset.bound = '1';
-      btn.addEventListener('click', function(e) {
-        e.stopPropagation();
-        var k = btn.getAttribute('data-complete');
-        var hidden = doc.querySelector('.st-key-kitchen_complete_' + k + ' button');
-        if (hidden) hidden.click();
-      });
-    });
     // 재료 삭제 버튼 (data-del)
     doc.querySelectorAll('[data-del]').forEach(function(btn) {
       if (btn.dataset.bound) return;
@@ -2773,6 +1959,152 @@ def render_kitchen_view():
 # 채팅 뷰 (기존 Step 1~4 플로우)
 # ═══════════════════════════════════════════════════════════════════════════
 def render_chat_view():
+    # ============================================================
+    # DEV MODE — 프로덕션 배포 전 이 블록 전체 삭제
+    # ============================================================
+    if st.session_state.get("_dev_mode"):
+        _DEV_DUMMY_VISION = {
+            "is_food": True,
+            "dish_name": "카놀리",
+            "ingredients": ["튀긴 페이스트리 셸", "리코타 치즈", "설탕", "초콜릿 칩", "바닐라 에센스"],
+            "characteristics": "이탈리아 전통 디저트. 바삭한 셸 안에 크리미한 리코타 필링."
+        }
+        _DEV_DUMMY_RECIPE = {
+            "dish_name": "카놀리",
+            "servings": 2,
+            "cooking_time": "30분",
+            "difficulty": "보통",
+            "ingredients": [
+                {"name": "튀긴 페이스트리 셸", "amount": "4개"},
+                {"name": "리코타 치즈", "amount": "200g"},
+                {"name": "설탕", "amount": "3큰술"},
+                {"name": "초콜릿 칩", "amount": "2큰술"},
+                {"name": "바닐라 에센스", "amount": "1작은술"},
+            ],
+            "steps": [
+                "리코타 치즈를 고운 체에 걸러 물기를 뺀다.",
+                "설탕, 바닐라 에센스를 넣고 부드럽게 섞는다.",
+                "초콜릿 칩의 절반을 필링에 섞는다.",
+                "페이스트리 셸에 필링을 짤주머니로 채운다.",
+                "남은 초콜릿 칩으로 양 끝을 장식하고 슈거파우더를 뿌린다.",
+            ],
+            "tags": ["이탈리아", "디저트", "간식", "베이킹"]
+        }
+
+        def _dev_reset():
+            for k in ["step","vision_result","servings","extra_requests","recipe_result",
+                      "chat_history","recipe_confirmed","awaiting_revision","reanalyze_pending",
+                      "image_bytes","mime_type","_typing","_pending_recipe","_last_file_name"]:
+                st.session_state[k] = SESSION_DEFAULTS.get(k)
+            st.session_state["chat_history"] = []
+
+        # 플로팅 패널 CSS — 채팅 레이아웃 밖(position:fixed)에 렌더링
+        # DEV MODE CSS — style.css의 DEV MODE 섹션에서 로드됨
+
+        with st.container(key="_dev_panel"):
+            _is_open = st.session_state.get("_dev_mode_open", False)
+
+            if not _is_open:
+                # 접힘 상태 — 작은 🛠 버튼만
+                if st.button("🛠", key="_dev_open"):
+                    st.session_state["_dev_mode_open"] = True
+                    st.rerun()
+            else:
+                # 펼침 상태 — 닫기 + 7개 점프 버튼 (2열 배치)
+                if st.button("✕ DEV MODE", key="_dev_close"):
+                    st.session_state["_dev_mode_open"] = False
+                    st.rerun()
+                _dev_r1 = st.columns(2)
+                _dev_r2 = st.columns(2)
+                _dev_r3 = st.columns(2)
+                _dev_r4 = st.columns(1)
+                _dev_c = [_dev_r1[0], _dev_r1[1], _dev_r2[0], _dev_r2[1],
+                          _dev_r3[0], _dev_r3[1], _dev_r4[0]]
+
+                with _dev_c[0]:
+                    if st.button("① 초기화", key="_dev_step1"):
+                        _dev_reset()
+                        st.session_state["view"] = "chat"
+                        st.rerun()
+                with _dev_c[1]:
+                    if st.button("② 인분선택", key="_dev_step2"):
+                        _dev_reset()
+                        st.session_state["view"] = "chat"
+                        st.session_state["vision_result"] = _DEV_DUMMY_VISION
+                        st.session_state["step"] = 2
+                        add_ai_message(
+                            f'<b>카놀리</b>(으)로 분석했어요! 🎉<br>'
+                            f'<span class="sub">보이는 재료 — 튀긴 페이스트리 셸, 리코타 치즈, 설탕, 초콜릿 칩</span>'
+                        )
+                        add_ai_message("몇 인분으로 만들까요? <span class='sub'>(기본 2인분)</span>")
+                        st.rerun()
+                with _dev_c[2]:
+                    if st.button("③ 추가요청", key="_dev_step3"):
+                        _dev_reset()
+                        st.session_state["view"] = "chat"
+                        st.session_state["vision_result"] = _DEV_DUMMY_VISION
+                        st.session_state["servings"] = 2
+                        st.session_state["step"] = 3
+                        add_ai_message(
+                            f'<b>카놀리</b>(으)로 분석했어요! 🎉<br>'
+                            f'<span class="sub">보이는 재료 — 튀긴 페이스트리 셸, 리코타 치즈, 설탕, 초콜릿 칩</span>'
+                        )
+                        add_ai_message("몇 인분으로 만들까요? <span class='sub'>(기본 2인분)</span>")
+                        add_user_message("2인분")
+                        add_ai_message("2인분으로 준비할게요 👍")
+                        add_ai_message("더 반영할 요청이 있나요? <span class='sub'>(없으면 건너뛰어도 돼요)</span>")
+                        st.rerun()
+                with _dev_c[3]:
+                    if st.button("④ 레시피카드", key="_dev_step4"):
+                        _dev_reset()
+                        st.session_state["view"] = "chat"
+                        st.session_state["vision_result"] = _DEV_DUMMY_VISION
+                        st.session_state["servings"] = 2
+                        st.session_state["extra_requests"] = ""
+                        st.session_state["recipe_result"] = _DEV_DUMMY_RECIPE
+                        st.session_state["step"] = 4
+                        add_ai_message(
+                            f'<b>카놀리</b>(으)로 분석했어요! 🎉<br>'
+                            f'<span class="sub">보이는 재료 — 튀긴 페이스트리 셸, 리코타 치즈, 설탕, 초콜릿 칩</span>'
+                        )
+                        add_ai_message("몇 인분으로 만들까요? <span class='sub'>(기본 2인분)</span>")
+                        add_user_message("2인분")
+                        add_ai_message("2인분으로 준비할게요 👍")
+                        add_user_message("추가 요청 없음")
+                        add_ai_message("레시피가 완성됐어요! 아래에서 확인해 보세요 ✨")
+                        add_ai_message(build_recipe_card_html(_DEV_DUMMY_RECIPE))
+                        st.rerun()
+                with _dev_c[4]:
+                    if st.button("⑤ 비음식에러", key="_dev_nonfood"):
+                        _dev_reset()
+                        st.session_state["view"] = "chat"
+                        add_user_message("음식 사진을 올렸어요 📷")
+                        add_ai_message("음식 사진이 아닌 것 같아요 🤔<br><span class='sub'>음식 사진이 아닙니다. 일반 물체 사진입니다.</span>")
+                        st.rerun()
+                with _dev_c[5]:
+                    if st.button("⑥ API에러", key="_dev_apierror"):
+                        _dev_reset()
+                        st.session_state["view"] = "chat"
+                        add_user_message("음식 사진을 올렸어요 📷")
+                        add_ai_message("⚠️ API 오류가 발생했어요.<br><span class='sub'>연결 시간이 초과됐어요. 잠시 후 다시 시도해 주세요.</span>")
+                        st.rerun()
+                with _dev_c[6]:
+                    if st.button("⑦ 레시피확정", key="_dev_confirmed"):
+                        _dev_reset()
+                        st.session_state["view"] = "chat"
+                        st.session_state["vision_result"] = _DEV_DUMMY_VISION
+                        st.session_state["servings"] = 2
+                        st.session_state["recipe_result"] = _DEV_DUMMY_RECIPE
+                        st.session_state["recipe_confirmed"] = True
+                        st.session_state["step"] = 4
+                        add_ai_message("레시피가 완성됐어요! 아래에서 확인해 보세요 ✨")
+                        add_ai_message(build_recipe_card_html(_DEV_DUMMY_RECIPE))
+                        add_user_message("레시피 확정!")
+                        add_ai_message("레시피를 저장했어요 🎉 장바구니에서 확인해 보세요.")
+                        st.rerun()
+    # ============================================================
+    # DEV MODE END
+    # ============================================================
     # topbar
     st.markdown(
         f"""
@@ -2783,9 +2115,6 @@ def render_chat_view():
         <div class="topbar-sub">음식 사진 → 맞춤 레시피</div>
       </div>
       <div class="topbar-spacer"></div>
-      <div class="topbar-status">
-        <span class="live-dot"></span>항상 활성화
-      </div>
     </div>
     """,
         unsafe_allow_html=True,
@@ -2829,7 +2158,7 @@ def render_chat_view():
     # ── 재분석 처리 (step 분기보다 먼저) ──
     if st.session_state.get("reanalyze_pending"):
         st.session_state["reanalyze_pending"] = False
-        client = get_ai_client()
+        get_ai_client()
         with st.spinner("이미지를 다시 분석하고 있어요..."):
             try:
                 vision_result, raw = analyze_food_image(
@@ -2847,29 +2176,12 @@ def render_chat_view():
             st.session_state["step"] = 2
             st.rerun()
 
-    st.markdown('<div class="chat-wrap">', unsafe_allow_html=True)
-    st.markdown('<div class="day-sep"><span>오늘 · 음식 사진 레시피</span></div>', unsafe_allow_html=True)
-
     # ── STEP 1: 이미지 업로드 ──
     if st.session_state["step"] == 1:
         render_chat_history()
 
         # file_uploader는 항상 렌더 (CSS로 기본 UI 숨김)
         # label_visibility="collapsed"로 라벨도 숨김
-        st.markdown(
-            """<style>
-            [data-testid="stFileUploaderDropzone"],
-            [data-testid="stFileUploadDropzone"] {
-                border:none!important;background:none!important;
-                padding:0!important;min-height:0!important;
-            }
-            [data-testid="stFileUploaderDropzoneInstructions"],
-            [data-testid="stFileUploaderDropzone"] button,
-            [data-testid="stFileUploader"] > label { display:none!important; }
-            [data-testid="stFileUploader"] section { padding:0!important; }
-            </style>""",
-            unsafe_allow_html=True,
-        )
         uploaded_file = st.file_uploader(
             "음식 사진 업로드",
             type=["jpg", "jpeg", "png", "webp"],
@@ -2905,51 +2217,39 @@ def render_chat_view():
                 height=0,
             )
         else:
-            # 파일 선택됨: 이미지 프리뷰 + 분석 버튼 (업로드 존 숨김)
-            _img_bytes_preview = uploaded_file.getvalue()
-            _img_b64 = base64.b64encode(_img_bytes_preview).decode()
-            _img_mime = uploaded_file.type or "image/jpeg"
-            _fname = html.escape(uploaded_file.name or "이미지")
-            st.markdown(
-                f"""
-            <div style="margin:4px 0 12px 48px;max-width:420px">
-              <div class="ph food fade-up" style="height:175px;border-radius:var(--r-lg);
-                   border:1px solid var(--line);overflow:hidden;position:relative">
-                <img src="data:{_img_mime};base64,{_img_b64}"
-                     style="width:100%;height:100%;object-fit:cover"/>
-                <span style="position:absolute;bottom:8px;left:10px;font-size:11px;
-                      color:#fff;background:rgba(0,0,0,.45);padding:2px 8px;border-radius:99px">
-                  {_fname}
-                </span>
-              </div>
-            </div>
-            """,
-                unsafe_allow_html=True,
-            )
-            _ac1, _ac2 = st.columns([5, 1])
-            with _ac1:
-                _do_analyze = st.button("사진 분석하기", key="analyze_start", type="primary", use_container_width=True)
-            with _ac2:
-                if st.button("↺", key="reselect_img", help="다시 선택"):
-                    st.rerun()
-            if _do_analyze:
-                image_bytes = uploaded_file.getvalue()
-                mime_type = uploaded_file.type or mimetypes.guess_type(uploaded_file.name)[0]
+            # 파일 선택됨
+            image_bytes = uploaded_file.getvalue()
+            mime_type = uploaded_file.type or mimetypes.guess_type(uploaded_file.name)[0]
+            _cur_name = uploaded_file.name
+
+            # 2단계 A: 새 파일 감지 → typing 표시 후 rerun
+            if st.session_state.get("_last_file_name") != _cur_name and not st.session_state.get("_pending_analyze"):
                 if len(image_bytes) > 4 * 1024 * 1024:
                     st.error("이미지가 너무 커요. 4MB 이하 이미지를 사용해주세요.")
                     st.stop()
                 st.session_state["image_bytes"] = image_bytes
                 st.session_state["mime_type"] = mime_type
-                client = get_ai_client()
-                with st.spinner("사진을 분석하고 있어요..."):
-                    try:
-                        vision_result, raw = analyze_food_image(image_bytes, mime_type)
-                    except Exception as e:
-                        handle_api_error(e)
+                st.session_state["_last_file_name"] = _cur_name
+                st.session_state["_typing"] = True
+                st.session_state["_pending_analyze"] = True
+                st.rerun()
+
+            # 2단계 B: 분석 대기 중 → API 호출
+            if st.session_state.get("_pending_analyze"):
+                st.session_state["_pending_analyze"] = False
+                _ib = st.session_state.get("image_bytes") or image_bytes
+                _mt = st.session_state.get("mime_type") or mime_type
+                get_ai_client()
+                try:
+                    vision_result, raw = analyze_food_image(_ib, _mt)
+                except Exception as e:
+                    st.session_state["_typing"] = False
+                    handle_api_error(e)
+                st.session_state["_typing"] = False
                 if vision_result is None:
                     add_ai_message("분석 결과를 이해하지 못했어요. 다시 시도해 주세요.")
+                    st.session_state["_last_file_name"] = None
                 else:
-                    st.session_state["vision_result"] = vision_result
                     is_food = vision_result.get("is_food", True)
                     if not is_food:
                         reason = vision_result.get("non_food_reason", "음식이 아닌 것 같아요.")
@@ -2957,6 +2257,7 @@ def render_chat_view():
                         st.session_state["image_bytes"] = None
                         st.session_state["mime_type"] = None
                         st.session_state["vision_result"] = None
+                        st.session_state["_last_file_name"] = None
                     else:
                         dish = vision_result.get("dish_name", "")
                         ings = vision_result.get("ingredients", [])
@@ -2967,52 +2268,56 @@ def render_chat_view():
                             f'<span class="sub">보이는 재료 — {html.escape(ing_text)}</span>'
                         )
                         add_ai_message("몇 인분으로 만들까요? <span class='sub'>(기본 2인분)</span>")
+                        st.session_state["vision_result"] = vision_result
                         st.session_state["step"] = 2
                 st.rerun()
 
     # ── STEP 2: 인분 입력 (패턴 A: pure st.button + CSS) ──
     if st.session_state["step"] == 2:
         render_chat_history()
-        # quick-reply 칩 — CSS로 .chip 스타일이 적용된 st.button
-        cols = st.columns([1, 1, 1, 1, 1.5])
-        for i, (label, val) in enumerate([("1인분", 1), ("2인분", 2), ("4인분", 4), ("6인분", 6)]):
-            with cols[i]:
-                if st.button(label, key=f"serv_{val}", use_container_width=True):
-                    add_user_message(label)
-                    st.session_state["servings"] = val
+        # quick-reply 칩 — 채팅 좌측 정렬 (container key로 CSS 스코핑)
+        with st.container(key="step2_chips"):
+            _cols2 = st.columns(5, gap="small")
+            for _i, (label, val) in enumerate([("1인분", 1), ("2인분", 2), ("4인분", 4), ("6인분", 6)]):
+                with _cols2[_i]:
+                    if st.button(label, key=f"serv_{val}"):
+                        add_user_message(label)
+                        st.session_state["servings"] = val
+                        add_ai_message(f"{val}인분으로 준비할게요 👍")
+                        add_ai_message("더 반영할 요청이 있나요? <span class='sub'>(없으면 건너뛰어도 돼요)</span>")
+                        st.session_state["step"] = 3
+                        st.rerun()
+            with _cols2[4]:
+                if st.button("건너뛰기 →", key="serv_skip"):
+                    add_user_message("인분 수는 상관없어요")
+                    st.session_state["servings"] = None
+                    add_ai_message("기본 2인분으로 준비할게요 👍")
+                    add_ai_message("더 반영할 요청이 있나요? <span class='sub'>(없으면 건너뛰어도 돼요)</span>")
                     st.session_state["step"] = 3
                     st.rerun()
-        with cols[4]:
-            if st.button("건너뛰기 →", key="serv_skip", use_container_width=True):
-                add_user_message("인분 수는 상관없어요")
-                st.session_state["servings"] = None
-                st.session_state["step"] = 3
-                st.rerun()
 
         # 직접 입력은 하단 st.chat_input()이 처리
 
     # ── STEP 3: 추가 요청 ──
     if st.session_state["step"] == 3:
-        add_ai_message(
-            "더 반영할 요청이 있나요? <span class='sub'>(없으면 건너뛰어도 돼요)</span>"
-        )
         render_chat_history()
-        # quick-reply 칩 — 패턴 A: CSS로 .chip 스타일이 적용된 st.button
-        quick_prefs = ["채식으로 바꿔줘", "안 맵게", "10분 이내", "설탕 줄여줘"]
-        p_cols = st.columns(len(quick_prefs) + 1)
-        for i, label in enumerate(quick_prefs):
-            with p_cols[i]:
-                if st.button(label, key=f"pref_{i}", use_container_width=True):
-                    add_user_message(label)
-                    st.session_state["extra_requests"] = label
+        # quick-reply 칩 — 채팅 좌측 정렬 (container key로 CSS 스코핑)
+        with st.container(key="step3_chips"):
+            quick_prefs = ["채식으로 바꿔줘", "안 맵게", "10분 이내", "설탕 줄여줘"]
+            p_cols = st.columns(5, gap="small")
+            for i, label in enumerate(quick_prefs):
+                with p_cols[i]:
+                    if st.button(label, key=f"pref_{i}"):
+                        add_user_message(label)
+                        st.session_state["extra_requests"] = label
+                        st.session_state["step"] = 4
+                        st.rerun()
+            with p_cols[-1]:
+                if st.button("건너뛰기 →", key="pref_skip"):
+                    add_user_message("추가 요청 없음")
+                    st.session_state["extra_requests"] = ""
                     st.session_state["step"] = 4
                     st.rerun()
-        with p_cols[-1]:
-            if st.button("건너뛰기 →", key="pref_skip", use_container_width=True):
-                add_user_message("추가 요청 없음")
-                st.session_state["extra_requests"] = ""
-                st.session_state["step"] = 4
-                st.rerun()
 
         # 직접 입력은 하단 st.chat_input()이 처리
 
@@ -3022,16 +2327,25 @@ def render_chat_view():
 
         # 레시피가 아직 생성되지 않았으면 생성
         if st.session_state["recipe_result"] is None:
-            client = get_ai_client()
-            with st.spinner("레시피를 만들고 있어요..."):
-                try:
-                    recipe_result, raw = generate_recipe(
-                        st.session_state["vision_result"],
-                        st.session_state["servings"],
-                        st.session_state["extra_requests"],
-                    )
-                except Exception as e:
-                    handle_api_error(e)
+            # 2단계 A: typing 표시 후 rerun
+            if not st.session_state.get("_pending_recipe"):
+                st.session_state["_typing"] = True
+                st.session_state["_pending_recipe"] = True
+                st.rerun()
+
+            # 2단계 B: 실제 생성
+            st.session_state["_pending_recipe"] = False
+            get_ai_client()
+            try:
+                recipe_result, raw = generate_recipe(
+                    st.session_state["vision_result"],
+                    st.session_state["servings"],
+                    st.session_state["extra_requests"],
+                )
+            except Exception as e:
+                st.session_state["_typing"] = False
+                handle_api_error(e)
+            st.session_state["_typing"] = False
             if recipe_result is None:
                 add_ai_message("레시피 생성에 실패했어요. 다시 시도해 주세요.")
             else:
@@ -3042,7 +2356,7 @@ def render_chat_view():
                 if extra:
                     get_ai_client()
                     extract_and_save_feedback(extra)
-                st.rerun()
+            st.rerun()
 
         # 확정/수정/재분석 버튼
         if st.session_state["recipe_result"] is not None and not st.session_state["recipe_confirmed"]:
@@ -3108,8 +2422,6 @@ def render_chat_view():
                 reset_all()
                 st.rerun()
 
-    st.markdown('</div>', unsafe_allow_html=True)  # .chat-wrap 닫기
-
     # ── 하단 고정 composer (st.chat_input) ──
     _step_now = st.session_state.get("step", 1)
     _revising_now = st.session_state.get("awaiting_revision", False)
@@ -3129,6 +2441,10 @@ def render_chat_view():
         if _step_now == 2:
             add_user_message(_chat_val)
             st.session_state["servings"] = parse_servings(_chat_val)
+            _sv = st.session_state["servings"]
+            _sv_label = f"{_sv}인분" if _sv else "기본 2인분"
+            add_ai_message(f"{_sv_label}으로 준비할게요 👍")
+            add_ai_message("더 반영할 요청이 있나요? <span class='sub'>(없으면 건너뛰어도 돼요)</span>")
             st.session_state["step"] = 3
             st.rerun()
         elif _step_now == 3:
