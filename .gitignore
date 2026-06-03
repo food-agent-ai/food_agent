@@ -1,0 +1,58 @@
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Environment files and secrets
+.env
+.env.*
+!.env.example
+.streamlit/secrets.toml
+
+# Test, lint, and type-check caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Notebook checkpoints
+.ipynb_checkpoints/
+
+# OS and editor files
+.DS_Store
+Thumbs.db
+.vscode/
+
+# issues/refs
+issues/
+refs/
+
+# 런타임 생성 데이터
+recipes/
+cart/
+completed/
+data/
+
+# 로컬 설정 및 개인 데이터
+config.json
+source.md
+feedback.md
+
+# 디자인 바이너리 및 추출 결과물
+design_download.gz
+design_extracted/
+
+# 개발 workspace (중첩 경로 포함)
+_workspace/
