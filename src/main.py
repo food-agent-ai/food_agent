@@ -1880,19 +1880,20 @@ def render_kitchen_view():
         """,
             unsafe_allow_html=True,
         )
-        _ic1, _ic2 = st.columns([5, 1])
-        with _ic1:
-            _new_ing = st.text_input(
-                "새 재료", key="new_ing_input",
-                placeholder="예: 당근(2개)", label_visibility="collapsed",
-            )
-        with _ic2:
-            if st.button("+ 추가", key="add_ing_btn", use_container_width=True):
-                if _new_ing.strip():
-                    _parsed = _parse_ingredient_string(_new_ing.strip())
-                    st.session_state["kitchen_ingredients"].append(_parsed)
-                    _save_kitchen_to_source()
-                    st.rerun()
+        with st.form(key="ing_form", border=False, clear_on_submit=True):
+            _ic1, _ic2 = st.columns([5, 1])
+            with _ic1:
+                _new_ing = st.text_input(
+                    "새 재료", key="new_ing_input",
+                    placeholder="예: 당근(2개)", label_visibility="collapsed",
+                )
+            with _ic2:
+                _ing_submitted = st.form_submit_button("+ 추가", key="add_ing_btn", use_container_width=True)
+            if _ing_submitted and _new_ing.strip():
+                _parsed = _parse_ingredient_string(_new_ing.strip())
+                st.session_state["kitchen_ingredients"].append(_parsed)
+                _save_kitchen_to_source()
+                st.rerun()
 
     # 숨겨진 재료 삭제 트리거 버튼들
     for i in range(len(_ings)):
@@ -1943,15 +1944,17 @@ def render_kitchen_view():
                 st.session_state["adding_pref_mode"] = True
                 st.rerun()
         else:
-            _pc1, _pc2 = st.columns([5, 1])
-            with _pc1:
-                _new_pref = st.text_input(
-                    "새 취향", key="new_pref_input",
-                    placeholder="예: 매운 음식 선호, 토마토 알러지",
-                    label_visibility="collapsed",
-                )
-            with _pc2:
-                if st.button("+ 추가", use_container_width=True, key="confirm_add_pref"):
+            with st.form(key="pref_form", border=False, clear_on_submit=True):
+                _pc1, _pc2 = st.columns([5, 1])
+                with _pc1:
+                    _new_pref = st.text_input(
+                        "새 취향", key="new_pref_input",
+                        placeholder="예: 매운 음식 선호, 토마토 알러지",
+                        label_visibility="collapsed",
+                    )
+                with _pc2:
+                    _pref_submitted = st.form_submit_button("+ 추가", use_container_width=True, key="confirm_add_pref")
+                if _pref_submitted:
                     if _new_pref.strip():
                         st.session_state["kitchen_preferences"].append(_new_pref.strip())
                         _save_kitchen_to_source()

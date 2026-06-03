@@ -976,7 +976,7 @@
 }
 .kitchen-mode [data-testid="stTextInput"] input {
   border: 1.5px solid var(--line-strong) !important;
-  border-radius: var(--r-md) !important;
+  border-radius: var(--r-lg) !important;
   padding: 8px 14px !important;
   font-size: 13.5px !important;
   background: #FFFFFF !important;
@@ -1016,11 +1016,11 @@
   border-color: var(--blue) !important;
   color: var(--blue) !important;
 }
-/* 완료 처리 버튼 숨김 (hidden trigger) */
-.kitchen-mode .st-key-kitchen_complete_trigger button,
-.kitchen-mode [class*="st-key-kitchen_complete_"] button,
-.kitchen-mode [class*="st-key-view_recipe_"] button {
-  display: none !important;
+/* 완료 처리 hidden trigger 버튼 — 래퍼를 숨겨야 .click()이 Streamlit에 전달됨 */
+[class*="st-key-kitchen_complete_"],
+[class*="st-key-view_recipe_"] {
+  height: 0 !important; overflow: hidden !important;
+  margin: 0 !important; padding: 0 !important; min-height: 0 !important;
 }
 /* 취향 추가 인풋 모드 — 보유 재료 추가 행과 동일 스타일 */
 .kitchen-mode .st-key-confirm_add_pref button {
