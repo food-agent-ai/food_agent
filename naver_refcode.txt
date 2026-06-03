@@ -1,0 +1,89 @@
+import os
+import requests
+import json
+from dotenv import load_dotenv
+
+load_dotenv()
+
+NAVER_CLIENT_ID = os.getenv("NAVER_CLIENT_ID")
+NAVER_CLIENT_SECRET = os.getenv("NAVER_CLIENT_SECRET")
+
+def get_shopping_links_sim(keyword):
+    """
+    네이버 쇼핑 검색 공식 API를 사용하여 정확도순(sim) 상위 3개 상품을 가져옵니다.
+    식재료와 겹칠 수 있는 애매한 단어를 제외하고, 명백한 주방 기구/잡화 키워드만 필터링합니다.
+    """
+    url = "https://openapi.naver.com/v1/search/shop.json"
+    
+    headers = {
+        "X-Naver-Client-Id": NAVER_CLIENT_ID,
+        "X-Naver-Client-Secret": NAVER_CLIENT_SECRET
+    }
+    
+    params = {
+        "query": keyword,      
+        "display": 15,          # 필터링 대비 여유 있게 수집
+        "sort": "sim",                    
+        "exclude": "used:rental:cbshop"   
+    }
+    
+    try:
+        response = requests.get(url, headers=headers, params=params)
+        
+        if response.status_code == 200:
+            data = response.json()
+            products = []
+            
+            # 🚫 [정교화 완료] "세트", "주방", "커팅", "원형", "사각" 등 식재료 수식어와 겹치는 단어 전면 제거
+            stop_words = [
+                "틀", "모양틀", "조리기", "조리도구", "프라이팬", "플레이트",
+                "메이커", "커터", "성형기", "기계", "기구", "스텐", "에그팬", "쉐이퍼",
+                "몰드", "액세서리", "가젯", "쿠커", "논스틱", "주방용품", "매트", 
+                "뒤집개", "롤러", "스프레더", "커팅기", "슬라이서", "프레서", "전용팬", "원형", "사각", "타원형", "삼각형", "다용도", "조리세트", "조리도구세트"
+            ]
+            
+            for item in data.get("items", []):
+                clean_title = item["title"].replace("<b>", "").replace("</b>", "")
+                
+                # 조리도구 키워드가 포함되어 있다면 제외
+                if any(word in clean_title for word in stop_words):
+                    continue
+                
+                products.append({
+                    "title": clean_title,
+                    "lprice": item["lprice"],  
+                    "link": item["link"]        
+                })
+                
+                if len(products) == 3:
+                    break
+                    
+            return products
+        else:
+            print(f"❌ 네이버 API 호출 실패 (HTTP 상태 코드: {response.status_code})")
+            return []
+            
+    except Exception as e:
+        print(f"❌ API 요청 중 오류 발생: {e}")
+        return []
+
+
+def search_ingredients_shopping_sim(dish_name, ingredients_list):
+    """
+    요리명과 재료 리스트를 받아서 '{요리명}용 {재료명}' 형태로 정교하게 조합해 검색합니다.
+    """
+    shopping_results = {}
+    
+    print(f"\n🛒 [네이버 쇼핑] '{dish_name}' 관련 총 {len(ingredients_list)}개의 재료 검색을 시작합니다.")
+    print("=" * 60)
+    
+    for ingredient in ingredients_list:
+        search_keyword = f"{dish_name}용 {ingredient}"
+        print(f"🔍 [실제 검색어] : \"{search_keyword}\" 상품 수집 및 필터링 중...")
+        
+        sim_links = get_shopping_links_sim(search_keyword)
+        shopping_results[ingredient] = sim_links
+        
+    print("=" * 60)
+    return shopping_results
+
