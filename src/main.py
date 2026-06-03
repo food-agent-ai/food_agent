@@ -2170,15 +2170,57 @@ def render_chat_view():
         if vision_result is None:
             add_ai_message("분석 결과를 이해하지 못했어요. 다시 시도해 주세요.")
             st.session_state["vision_result"] = vision_result
+        # 🌟 [추가] 음식이 아닐 경우 예외 처리
+        elif not vision_result.get("is_food", True):
+            reason = vision_result.get("non_food_reason", "음식이 아닌 것 같습니다.")
+            add_ai_message(f"⚠️ **음식 사진이 아닌 것 같아요!**<br><span class='sub'>이유: {reason}</span>")
+            add_ai_message("맛있는 요리법 생성을 위해 **다른 음식 사진으로 다시 촬영하거나 업로드**해 주세요! 📸")
+            st.session_state["step"] = 1  # 1단계로 되돌림
+            st.rerun()
         else:
             st.session_state["vision_result"] = vision_result
-            add_ai_message("몇 인분으로 만들까요? <span class='sub'>(기본 2인분)</span>")
-            st.session_state["step"] = 2
+            add_ai_message(
+                f'재분석 결과, <b>{vision_result.get("dish_name")}</b>(으)로 확인했어요! 🎉<br>'
+                f'<span class="sub">보이는 재료 — {", ".join(vision_result.get("ingredients", []))}</span>'
+            )
+            # add_ai_message("몇 인분으로 만들까요? <span class='sub'>(기본 2인분)</span>")
+            # st.session_state["step"] = 2
+
+            # 2. 🌟 [요청하신 기능 반영] 기존 설정을 바탕으로 새 레시피 즉시 생성 및 메시지 출력
+            with st.spinner("새로운 음식에 맞춰 레시피를 다시 생성하고 있어요... 👨‍🍳"):
+                try:
+                    # 기존 세션에 있던 servings와 extra_requests를 가져옴 (없으면 기본값)
+                    _servings = st.session_state.get("servings", 2)
+                    _extra = st.session_state.get("extra_requests", "")
+                    
+                    # 새로운 레시피 생성 API 호출
+                    recipe_result, _ = generate_recipe(vision_result, _servings, _extra)
+                    
+                    # 세션에 결과 저장 및 챗봇 메시지 추가 (요청하신 부분)
+                    st.session_state["recipe_result"] = recipe_result
+                    add_ai_message("레시피가 완성됐어요! 아래에서 확인해 보세요 ✨")
+                    add_ai_message(build_recipe_card_html(recipe_result))
+                    
+                    # 피드백 추출 및 저장 로직 수행
+                    if _extra:
+                        get_ai_client()
+                        extract_and_save_feedback(_extra)
+                        
+                except Exception as e:
+                    handle_api_error(e)
+            
+            # 3. 4단계(결과/확정 화면)로 세팅하여 리런
+            st.session_state["step"] = 4
+
             st.rerun()
 
     # ── STEP 1: 이미지 업로드 ──
     if st.session_state["step"] == 1:
         render_chat_history()
+
+        # 파일 업로더 리셋용 카운터 초기화
+        if "uploader_key_counter" not in st.session_state:
+            st.session_state["uploader_key_counter"] = 0
 
         # file_uploader는 항상 렌더 (CSS로 기본 UI 숨김)
         # label_visibility="collapsed"로 라벨도 숨김
@@ -2187,7 +2229,10 @@ def render_chat_view():
             type=["jpg", "jpeg", "png", "webp"],
             accept_multiple_files=False,
             label_visibility="collapsed",
+            key=f"food_image_uploader_{st.session_state['uploader_key_counter']}"  # 🌟 key 변경으로 리셋 가능하게 만듦
         )
+
+        st.markdown("</div></div>", unsafe_allow_html=True)
 
         if uploaded_file is None:
             # 파일 미선택: 업로드 존 표시 + JS 클릭 트리거
@@ -2254,10 +2299,22 @@ def render_chat_view():
                     if not is_food:
                         reason = vision_result.get("non_food_reason", "음식이 아닌 것 같아요.")
                         add_ai_message(f"🤔 {reason}")
+                        add_ai_message("맛있는 요리법 생성을 위해 **다른 음식 사진으로 다시 촬영하거나 업로드**해 주세요! 📸")
+
                         st.session_state["image_bytes"] = None
                         st.session_state["mime_type"] = None
                         st.session_state["vision_result"] = None
                         st.session_state["_last_file_name"] = None
+
+                        st.session_state["_typing"] = False             # ⚡ 타이핑 모드 해제
+                        st.session_state["_pending_analyze"] = False     # ⚡ 분석 대기 flag 해제
+
+                        # ⚡ 파일 업로더 컴포넌트 강제 리셋 (그릇 비우기)
+                        if "uploader_key_counter" in st.session_state:
+                            st.session_state["uploader_key_counter"] += 1
+
+                        st.session_state["step"] = 1  # 1단계 플로우 유지
+                        st.rerun()
                     else:
                         dish = vision_result.get("dish_name", "")
                         ings = vision_result.get("ingredients", [])
