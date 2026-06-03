@@ -56,3 +56,4 @@ design_extracted/
 
 # 개발 workspace (중첩 경로 포함)
 _workspace/
+_workspace_prev/
