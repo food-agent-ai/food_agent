@@ -44,9 +44,19 @@ description: >
 ### 목적
 기존 DOM 구조와 실제 적용된 CSS를 먼저 파악해 정확한 셀렉터와 원인을 찾는다.
 
+### 스크린샷 촬영 규칙 (필수)
+
+**탭 당 캡처 1회 제한**: Streamlit + CDP 조합에서 screenshot 또는 zoom을 한 번 찍으면 렌더러가 약 30초 freeze됨. 이후 같은 탭에서 추가 캡처는 타임아웃됨.
+
+따라서:
+- **캡처 순서**: zoom → full screenshot (zoom 먼저, full은 마지막)
+- **각 캡처마다 새 탭 생성**: `tabs_create_mcp` → `navigate` → `wait 4s` → 캡처
+- **zoom은 full screenshot 전에**: 같은 탭에서 full screenshot 후 zoom 시도 → 반드시 실패
+- **JS를 먼저**: 수치 확인(JS)은 캡처 전이나 다른 탭에서 먼저 수행
+
 ### 절차
 1. **앱 실행 확인** — `http://localhost:8501` 에 앱이 뜨는지 확인 (안 뜨면 실행 후 진행)
-2. **스크린샷 직접 촬영** — `mcp__Claude_in_Chrome__computer` `screenshot` 액션으로 수정 전 현재 상태를 캡처하고, 이미지를 육안으로 검토해 문제점을 먼저 파악한다. JS 검사보다 먼저 수행.
+2. **수정 전 스크린샷** — 새 탭 생성 → 내비게이션 → wait 4s → zoom(관심 영역) → (별도 탭에서) full screenshot. 문제점을 육안으로 파악하고 JS로 수치 측정.
 3. **Chrome DevTools JS로 실제 구조 파악**:
    ```js
    // 수정할 요소의 computed styles

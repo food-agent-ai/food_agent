@@ -1790,7 +1790,7 @@ def render_kitchen_view():
             </div>"""
 
         _panel_html = f"""
-        <div class="k-panel fade-up" style="margin-bottom:24px">
+        <div class="k-panel fade-up" style="margin-top:24px;margin-bottom:0">
           <div class="k-panel-head">
             <div class="k-panel-ic" style="background:var(--amber-soft);color:var(--amber-ink)">{icon("cart", 19)}</div>
             <div style="flex:1">
@@ -1849,7 +1849,7 @@ def render_kitchen_view():
         _chips_block = '<div style="font-size:13px;color:var(--ink-3)">아직 등록된 재료가 없어요.</div>'
 
     # ── 보유 재료 패널: st.container로 header+chips+input 하나의 카드로 ──
-    st.markdown('<div style="margin-top:24px"></div>', unsafe_allow_html=True)
+    pass  # 패널 간격은 CSS margin-top으로 처리
     with st.container(border=True):
         st.markdown(
             f"""
@@ -1907,7 +1907,7 @@ def render_kitchen_view():
     else:
         _pref_block = '<div style="font-size:13px;color:var(--ink-3);padding:4px 0">아직 등록된 취향이 없어요.</div>'
 
-    st.markdown('<div style="margin-top:24px"></div>', unsafe_allow_html=True)
+    pass  # 패널 간격은 CSS margin-top으로 처리
     with st.container(border=True):
         st.markdown(
             f"""
@@ -1929,21 +1929,18 @@ def render_kitchen_view():
                 st.session_state["adding_pref_mode"] = True
                 st.rerun()
         else:
-            _new_pref = st.text_input(
-                "새 취향", key="new_pref_input",
-                placeholder="예: 매운 음식 선호, 토마토 알러지",
-                label_visibility="collapsed",
-            )
-            _pc1, _pc2 = st.columns(2)
+            _pc1, _pc2 = st.columns([5, 1])
             with _pc1:
-                if st.button("추가", type="primary", use_container_width=True, key="confirm_add_pref"):
+                _new_pref = st.text_input(
+                    "새 취향", key="new_pref_input",
+                    placeholder="예: 매운 음식 선호, 토마토 알러지",
+                    label_visibility="collapsed",
+                )
+            with _pc2:
+                if st.button("+ 추가", use_container_width=True, key="confirm_add_pref"):
                     if _new_pref.strip():
                         st.session_state["kitchen_preferences"].append(_new_pref.strip())
                         _save_kitchen_to_source()
-                    st.session_state["adding_pref_mode"] = False
-                    st.rerun()
-            with _pc2:
-                if st.button("취소", use_container_width=True, key="cancel_add_pref"):
                     st.session_state["adding_pref_mode"] = False
                     st.rerun()
 

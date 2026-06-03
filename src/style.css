@@ -951,6 +951,7 @@
   border-radius: var(--r-lg) !important;
   box-shadow: var(--sh-xs) !important;
   padding: 0 !important;
+  margin-top: 24px !important;
 }
 /* 카드 내부 Streamlit 위젯(st.columns, st.button) 좌우 패딩 */
 .kitchen-mode [data-testid="stLayoutWrapper"] > [data-testid="stVerticalBlock"] > [data-testid="stLayoutWrapper"] {
@@ -959,10 +960,19 @@
 .kitchen-mode [data-testid="stLayoutWrapper"] > [data-testid="stVerticalBlock"] > [data-testid="stElementContainer"]:not(:first-child) {
   padding: 0 22px 18px !important;
 }
-/* 보유 재료 / 취향 인풋 — Streamlit wrapper 보더 제거 후 input에만 보더 적용 */
+/* stColumn 패딩 제거 — 인풋이 칩과 동일한 22px 기준선에 맞도록 */
+.kitchen-mode [data-testid="stLayoutWrapper"] > [data-testid="stVerticalBlock"] [data-testid="stColumn"] {
+  padding: 0 !important;
+  min-width: 0 !important;
+}
+/* 보유 재료 / 취향 인풋 — Streamlit wrapper 그림자·배경·outline·패딩 완전 제거 */
+.kitchen-mode [data-testid="stTextInput"],
 .kitchen-mode [data-testid="stTextInput"] > div {
   border: none !important;
   box-shadow: none !important;
+  outline: none !important;
+  background: transparent !important;
+  padding: 0 !important;
 }
 .kitchen-mode [data-testid="stTextInput"] input {
   border: 1.5px solid var(--line-strong) !important;
@@ -970,13 +980,14 @@
   padding: 8px 14px !important;
   font-size: 13.5px !important;
   background: #FFFFFF !important;
+  outline: none !important;
 }
 .kitchen-mode [data-testid="stTextInput"] input:focus {
   border-color: var(--blue) !important;
   box-shadow: 0 0 0 4px var(--blue-soft) !important;
   outline: none !important;
 }
-/* + 추가 버튼 */
+/* + 추가 버튼 (보유 재료) */
 .kitchen-mode .st-key-add_ing_btn button {
   background: var(--blue-soft) !important;
   color: var(--blue-ink) !important;
@@ -990,7 +1001,7 @@
 .kitchen-mode .st-key-add_ing_btn button:hover {
   background: var(--blue-soft-2) !important;
 }
-/* + 취향 추가 버튼 (k-add 스타일) */
+/* + 취향 추가 버튼 (k-add dashed pill) */
 .kitchen-mode .st-key-add_pref_btn button {
   background: none !important;
   border: 1.5px dashed var(--line-strong) !important;
@@ -1011,18 +1022,27 @@
 .kitchen-mode [class*="st-key-view_recipe_"] button {
   display: none !important;
 }
-/* 취향 추가 - confirm/cancel 버튼 */
+/* 취향 추가 인풋 모드 — 보유 재료 추가 행과 동일 스타일 */
 .kitchen-mode .st-key-confirm_add_pref button {
-  background: var(--blue) !important;
-  color: #fff !important;
+  background: var(--blue-soft) !important;
+  color: var(--blue-ink) !important;
   border: none !important;
-  border-radius: var(--r-md) !important;
+  border-radius: var(--r-sm) !important;
+  padding: 7px 13px !important;
+  font-size: 12.5px !important;
   font-weight: 700 !important;
+  height: 100% !important;
+}
+.kitchen-mode .st-key-confirm_add_pref button:hover {
+  background: var(--blue-soft-2) !important;
 }
 .kitchen-mode .st-key-cancel_add_pref button {
-  background: var(--surface) !important;
-  color: var(--ink) !important;
-  border: 1px solid var(--line-strong) !important;
-  border-radius: var(--r-md) !important;
-  font-weight: 600 !important;
+  background: none !important;
+  color: var(--ink-3) !important;
+  border: none !important;
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
+  padding: 7px 8px !important;
+  text-decoration: underline !important;
+  box-shadow: none !important;
 }
