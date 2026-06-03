@@ -682,6 +682,11 @@
         height: 0 !important; overflow: hidden !important;
         margin: 0 !important; padding: 0 !important; min-height: 0 !important;
     }
+    /* dev mode 숨겨진 트리거 버튼 — 완전히 숨김 */
+    .st-key-_dev_toggle_btn {
+        height: 0 !important; overflow: hidden !important;
+        margin: 0 !important; padding: 0 !important; min-height: 0 !important;
+    }
     /* 사이드바 레시피 — 투명 오버레이 버튼 (> 대신 공백: stButton wrapper 관통)
        QA-1/IMG-2: 버튼 높이를 비주얼 카드 높이(~46px)에 맞춰 다음 아이템 밀림 방지 */
     /* 버튼 컨테이너 자체는 레이아웃 높이 0 — 비주얼 카드 위에 떠 있는 오버레이만 표시.

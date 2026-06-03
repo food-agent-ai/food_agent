@@ -1353,9 +1353,9 @@ def render_sidebar():
         )
 
         # ============================================================
-        # DEV MODE — 프로덕션 배포 전 이 블록 전체 삭제
+        # DEV MODE — 브랜드 로고 5번 클릭으로 토글 (숨겨진 트리거)
         # ============================================================
-        if st.button("⚙", key="_dev_toggle_btn", help="개발 모드"):
+        if st.button("_dev", key="_dev_toggle_btn"):
             st.session_state["_dev_mode"] = not st.session_state.get("_dev_mode", False)
             st.rerun()
         # ============================================================
@@ -1363,12 +1363,17 @@ def render_sidebar():
         # ============================================================
 
         # nav data-nav 속성 → hidden nav 버튼 연결 (recipe는 이제 직접 st.button 사용)
+        # + 브랜드 로고 5번 클릭 → dev mode 트리거
         components.html(
             """
 <script>
 (function() {
   var doc = window.parent.document;
+  var clickCount = 0;
+  var clickTimer = null;
+
   function attach() {
+    // nav 연결
     doc.querySelectorAll('[data-nav]').forEach(function(el) {
       if (el.dataset.bound) return;
       el.dataset.bound = '1';
@@ -1378,6 +1383,22 @@ def render_sidebar():
         if (btn) btn.click();
       });
     });
+
+    // 브랜드 로고 5번 클릭 → dev mode 트리거
+    var brand = doc.querySelector('.sb-brand');
+    if (brand && !brand.dataset.devBound) {
+      brand.dataset.devBound = '1';
+      brand.addEventListener('click', function() {
+        clickCount++;
+        if (clickTimer) clearTimeout(clickTimer);
+        clickTimer = setTimeout(function() { clickCount = 0; }, 2000);
+        if (clickCount >= 5) {
+          clickCount = 0;
+          var devBtn = doc.querySelector('.st-key-_dev_toggle_btn button');
+          if (devBtn) devBtn.click();
+        }
+      });
+    }
   }
   setTimeout(attach, 100);
   setTimeout(attach, 500);
