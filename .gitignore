@@ -50,8 +50,9 @@ config.json
 source.md
 feedback.md
 
-# 디자인 바이너리 (extracted 결과물은 트래킹)
+# 디자인 바이너리 및 추출 결과물
 design_download.gz
+design_extracted/
 
 # 개발 workspace (중첩 경로 포함)
 _workspace/
