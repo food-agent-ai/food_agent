@@ -308,6 +308,7 @@ def generate_with_retry(messages: list, retries=3, base_delay=3) -> str:
         try:
             return _gemini_generate(messages)
         except Exception as e:
+            print(f"API 호출 실패 (시도 {attempt}/{retries}): {e}")
             err_text = str(e).lower()
             is_rate_limited = (
                 "429" in err_text
@@ -1454,6 +1455,7 @@ def render_home_view():
     st.markdown(
         f"""
     <div class="topbar">
+      <button class="sidebar-toggle" data-sidebar-toggle="1">{icon("menu", 20)}</button>
       <div class="k-panel-ic" style="width:34px;height:34px;background:var(--blue-soft);color:var(--blue);border-radius:10px;display:grid;place-items:center">{icon("home", 18)}</div>
       <div>
         <div class="topbar-title">홈</div>
@@ -1623,6 +1625,20 @@ def render_home_view():
         if (btn) btn.click();
       });
     });
+    // body class 마커 제거 (kitchen-mode 격리)
+    doc.body.classList.remove('kitchen-mode');
+    // 사이드바 토글 버튼
+    doc.querySelectorAll('[data-sidebar-toggle]').forEach(function(btn) {
+      if (btn.dataset.bound) return;
+      btn.dataset.bound = '1';
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        var sb = doc.querySelector('[data-testid="stSidebar"]');
+        if (!sb) return;
+        var sbBtn = sb.querySelector('button');
+        if (sbBtn) sbBtn.click();
+      });
+    });
   }
   setTimeout(attach, 80);
 })();
@@ -1736,6 +1752,7 @@ def render_kitchen_view():
     st.markdown(
         f"""
     <div class="topbar">
+      <button class="sidebar-toggle" data-sidebar-toggle="1">{icon("menu", 20)}</button>
       <div class="k-panel-ic" style="width:34px;height:34px;background:var(--blue-soft);color:var(--blue);border-radius:10px;display:grid;place-items:center">{icon("fridge", 18)}</div>
       <div>
         <div class="topbar-title">내 주방</div>
@@ -1750,15 +1767,30 @@ def render_kitchen_view():
 
     _cart_items = list_cart_items()
 
-    # ── 완료 처리 대기 패널 ──
+    # ── 완료 처리 대기 패널 (이슈 #50, #51): 전체 패널을 HTML로 렌더 + hidden 버튼 JS 연결 ──
     if _cart_items:
-        _comp_target = st.session_state.get("kitchen_complete_target")
+        # 1. 레시피 행 HTML 조립
+        _rows_html = ""
+        for ci in _cart_items:
+            _safe_key = _tile_key(ci["path"])
+            _ci_name = html.escape(str(ci.get("dish_name") or "레시피"))
+            _ci_ings = len((ci.get("data") or {}).get("ingredients") or [])
+            _ci_time = html.escape(str((ci.get("data") or {}).get("cooking_time") or "-"))
+            _rows_html += f"""
+            <div class="r-listrow" data-view="{_safe_key}" style="cursor:pointer">
+              <div class="r-listrow-thumb ph" style="background:#ECF1FF;font-size:22px">🍽️</div>
+              <div style="min-width:0;flex:1">
+                <div class="r-listrow-name">{_ci_name}</div>
+                <div class="r-listrow-intro">재료 {_ci_ings}개 · {_ci_time}</div>
+              </div>
+              <button class="btn btn-green btn-sm" data-complete="{_safe_key}"
+                      onclick="event.stopPropagation()">
+                {icon("check", 15)} 완료 처리
+              </button>
+            </div>"""
 
-        # ── 완료 처리 대기 패널: k-panel 헤더 + st.columns 행 (직접 버튼, JS 불필요) ──
-        st.markdown(
-            f"""
-        <div class="k-panel fade-up" style="border-bottom-left-radius:0;border-bottom-right-radius:0;
-             border-bottom:none;margin-bottom:0">
+        _panel_html = f"""
+        <div class="k-panel fade-up" style="margin-bottom:24px">
           <div class="k-panel-head">
             <div class="k-panel-ic" style="background:var(--amber-soft);color:var(--amber-ink)">{icon("cart", 19)}</div>
             <div style="flex:1">
@@ -1767,46 +1799,31 @@ def render_kitchen_view():
             </div>
             <span class="tag tag-amber">{len(_cart_items)}개</span>
           </div>
-        </div>
-        """,
-            unsafe_allow_html=True,
-        )
+          <div class="k-panel-body" style="padding-top:14px">
+            <div class="recipe-list">{_rows_html}</div>
+          </div>
+        </div>"""
 
-        # 각 레시피 행: st.columns 로 이름 + "레시피 보기" + "완료 처리"
+        # 2. HTML 렌더링
+        st.markdown(_panel_html, unsafe_allow_html=True)
+
+        # 3. hidden st.button (레시피 보기 + 완료 처리) — CSS로 숨김, JS로 트리거
         for ci in _cart_items:
             _safe_key = _tile_key(ci["path"])
-            _ci_name = str(ci.get("dish_name") or "레시피")
-            _ci_ings = len((ci.get("data") or {}).get("ingredients") or [])
-            _ci_time = str((ci.get("data") or {}).get("cooking_time") or "-")
-            _c_info, _c_view, _c_done = st.columns([4, 1.5, 1.5])
-            with _c_info:
-                st.markdown(
-                    f'<div style="padding:10px 0 10px 16px">'
-                    f'<div class="r-listrow-name">{html.escape(_ci_name)}</div>'
-                    f'<div class="r-listrow-intro">재료 {_ci_ings}개 · {html.escape(_ci_time)}</div>'
-                    f'</div>',
-                    unsafe_allow_html=True,
-                )
-            with _c_view:
-                if st.button("레시피 보기", key=f"view_recipe_{_safe_key}", use_container_width=True):
-                    st.session_state["view"] = "chat"
-                    st.session_state["load_recipe_pending"] = ci["data"]
-                    st.session_state["viewing_recipe"] = ci["path"]
-                    st.session_state["cart_selected_path"] = ci["path"]
-                    st.rerun()
-            with _c_done:
-                if st.button("✓ 완료 처리", key=f"kitchen_complete_{_safe_key}",
-                             type="primary", use_container_width=True):
-                    st.session_state["kitchen_complete_target"] = ci["path"]
-                    _sd = parse_source_md_to_data()
-                    _res = calculate_source_update(ci["data"], _sd)
-                    st.session_state["kitchen_complete_result"] = _res
-                    st.session_state["kitchen_source_edit_data"] = _sd
-                    st.session_state["kitchen_source_edit_mode"] = False
-                    st.rerun()
-
-        # 완료 처리 dialog는 render_kitchen_view 상단에서 _show_completion_dialog()로 열림
-        st.markdown('<div style="height:16px"></div>', unsafe_allow_html=True)
+            if st.button("_view", key=f"view_recipe_{_safe_key}", use_container_width=False):
+                st.session_state["view"] = "chat"
+                st.session_state["load_recipe_pending"] = ci["data"]
+                st.session_state["viewing_recipe"] = ci["path"]
+                st.session_state["cart_selected_path"] = ci["path"]
+                st.rerun()
+            if st.button("_complete", key=f"kitchen_complete_{_safe_key}", use_container_width=False):
+                st.session_state["kitchen_complete_target"] = ci["path"]
+                _sd = parse_source_md_to_data()
+                _res = calculate_source_update(ci["data"], _sd)
+                st.session_state["kitchen_complete_result"] = _res
+                st.session_state["kitchen_source_edit_data"] = _sd
+                st.session_state["kitchen_source_edit_mode"] = False
+                st.rerun()
 
     # ── 보유 재료 패널 (Bug #26 수정) ──
     _ings = st.session_state.get("kitchen_ingredients") or []
@@ -1832,11 +1849,11 @@ def render_kitchen_view():
         _chips_block = '<div style="font-size:13px;color:var(--ink-3)">아직 등록된 재료가 없어요.</div>'
 
     # ── 보유 재료 패널: st.container로 header+chips+input 하나의 카드로 ──
-    st.markdown('<div style="margin-top:18px"></div>', unsafe_allow_html=True)
+    st.markdown('<div style="margin-top:24px"></div>', unsafe_allow_html=True)
     with st.container(border=True):
         st.markdown(
             f"""
-        <div class="k-panel-head" style="padding:18px 6px 14px">
+        <div class="k-panel-head" style="padding:18px 22px 14px">
           <div class="k-panel-ic" style="background:var(--green-soft);color:var(--green-ink)">{icon("leaf", 19)}</div>
           <div style="flex:1">
             <div class="k-panel-title">보유 재료</div>
@@ -1844,8 +1861,8 @@ def render_kitchen_view():
           </div>
           <span class="tag tag-green">{_ing_count}개</span>
         </div>
-        <div style="height:1px;background:var(--line-2);margin:0 -16px"></div>
-        <div style="padding:14px 6px 6px">{_chips_block}</div>
+        <div style="height:1px;background:var(--line-2);margin:0 -22px"></div>
+        <div style="padding:18px 22px 22px">{_chips_block}</div>
         """,
             unsafe_allow_html=True,
         )
@@ -1890,11 +1907,11 @@ def render_kitchen_view():
     else:
         _pref_block = '<div style="font-size:13px;color:var(--ink-3);padding:4px 0">아직 등록된 취향이 없어요.</div>'
 
-    st.markdown('<div style="margin-top:18px"></div>', unsafe_allow_html=True)
+    st.markdown('<div style="margin-top:24px"></div>', unsafe_allow_html=True)
     with st.container(border=True):
         st.markdown(
             f"""
-        <div class="k-panel-head" style="padding:18px 6px 14px">
+        <div class="k-panel-head" style="padding:18px 22px 14px">
           <div class="k-panel-ic" style="background:var(--blue-soft);color:var(--blue-ink)">{icon("heart", 19)}</div>
           <div style="flex:1">
             <div class="k-panel-title">사용자 취향</div>
@@ -1902,8 +1919,8 @@ def render_kitchen_view():
           </div>
           <span class="tag tag-blue">{_pref_count}개</span>
         </div>
-        <div style="height:1px;background:var(--line-2);margin:0 -16px"></div>
-        <div style="padding:14px 6px 6px">{_pref_block}</div>
+        <div style="height:1px;background:var(--line-2);margin:0 -22px"></div>
+        <div style="padding:18px 22px 22px">{_pref_block}</div>
         """,
             unsafe_allow_html=True,
         )
@@ -1966,6 +1983,42 @@ def render_kitchen_view():
         if (hidden) hidden.click();
       });
     });
+    // 완료 처리 대기 행 클릭 (레시피 보기)
+    doc.querySelectorAll('[data-view]').forEach(function(row) {
+      if (row.dataset.bound) return;
+      row.dataset.bound = '1';
+      row.addEventListener('click', function(e) {
+        if (e.target.closest('[data-complete]')) return; // 완료 버튼 클릭 시 무시
+        var key = row.getAttribute('data-view');
+        var hidden = doc.querySelector('.st-key-view_recipe_' + key + ' button');
+        if (hidden) hidden.click();
+      });
+    });
+    // 완료 처리 버튼 클릭
+    doc.querySelectorAll('[data-complete]').forEach(function(btn) {
+      if (btn.dataset.bound) return;
+      btn.dataset.bound = '1';
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        var key = btn.getAttribute('data-complete');
+        var hidden = doc.querySelector('.st-key-kitchen_complete_' + key + ' button');
+        if (hidden) hidden.click();
+      });
+    });
+    // body class 마커 (kitchen-mode 격리)
+    doc.body.classList.add('kitchen-mode');
+    // 사이드바 토글 버튼
+    doc.querySelectorAll('[data-sidebar-toggle]').forEach(function(btn) {
+      if (btn.dataset.bound) return;
+      btn.dataset.bound = '1';
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        var sb = doc.querySelector('[data-testid="stSidebar"]');
+        if (!sb) return;
+        var sbBtn = sb.querySelector('button');
+        if (sbBtn) sbBtn.click();
+      });
+    });
   }
   setTimeout(attach, 80);
   setTimeout(attach, 400);
@@ -1980,6 +2033,23 @@ def render_kitchen_view():
 # 채팅 뷰 (기존 Step 1~4 플로우)
 # ═══════════════════════════════════════════════════════════════════════════
 def render_chat_view():
+    # body class 마커 제거 + 사이드바 토글 버튼 JS
+    components.html(
+        """<script>(function(){var d=window.parent.document;
+        function r(){
+          d.body.classList.remove('kitchen-mode');
+          d.querySelectorAll('[data-sidebar-toggle]').forEach(function(btn){
+            if(btn.dataset.bound)return;btn.dataset.bound='1';
+            btn.addEventListener('click',function(e){
+              e.stopPropagation();
+              var sb=d.querySelector('[data-testid="stSidebar"]');
+              if(!sb)return;var sbBtn=sb.querySelector('button');if(sbBtn)sbBtn.click();
+            });
+          });
+        }
+        setTimeout(r,40);setTimeout(r,300);})();</script>""",
+        height=0,
+    )
     # ============================================================
     # DEV MODE — 프로덕션 배포 전 이 블록 전체 삭제
     # ============================================================
@@ -2130,6 +2200,7 @@ def render_chat_view():
     st.markdown(
         f"""
     <div class="topbar">
+      <button class="sidebar-toggle" data-sidebar-toggle="1">{icon("menu", 20)}</button>
       <div class="msg-ai-avatar" style="width:34px;height:34px;border-radius:10px;margin-top:0">{icon("chef", 17)}</div>
       <div>
         <div class="topbar-title">레시피 AI</div>

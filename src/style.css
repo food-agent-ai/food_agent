@@ -80,6 +80,10 @@
     /* Streamlit 헤더/푸터 완전 숨김 (Deploy 버튼 포함) */
     [data-testid="stHeader"] { display: none !important; }
     header[data-testid="stHeader"] { display: none !important; }
+    /* 사이드바 항상 펼침 — 접기 버튼 숨김 */
+    [data-testid="stSidebarHeader"] { display: none !important; }
+    /* 사이드바 토글 버튼 (topbar에 직접 추가) — 항상 펼침이므로 숨김 */
+    .sidebar-toggle { display: none !important; }
     footer { display: none !important; }
     #MainMenu { visibility: hidden; }
     .stDeployButton { display: none !important; }
@@ -938,3 +942,87 @@
             [data-testid="stFileUploaderDropzone"] button,
             [data-testid="stFileUploader"] > label { display:none!important; }
             [data-testid="stFileUploader"] section { padding:0!important; }
+
+/* ── Kitchen view 격리 ── */
+/* max-width 롤백: 기존 레이아웃 그대로 사용 */
+.kitchen-mode [data-testid="stLayoutWrapper"] > [data-testid="stVerticalBlock"] {
+  background: #FFFFFF !important;
+  border: 1px solid var(--line) !important;
+  border-radius: var(--r-lg) !important;
+  box-shadow: var(--sh-xs) !important;
+  padding: 0 !important;
+}
+/* 카드 내부 Streamlit 위젯(st.columns, st.button) 좌우 패딩 */
+.kitchen-mode [data-testid="stLayoutWrapper"] > [data-testid="stVerticalBlock"] > [data-testid="stLayoutWrapper"] {
+  padding: 0 22px 22px !important;
+}
+.kitchen-mode [data-testid="stLayoutWrapper"] > [data-testid="stVerticalBlock"] > [data-testid="stElementContainer"]:not(:first-child) {
+  padding: 0 22px 18px !important;
+}
+/* 보유 재료 / 취향 인풋 — Streamlit wrapper 보더 제거 후 input에만 보더 적용 */
+.kitchen-mode [data-testid="stTextInput"] > div {
+  border: none !important;
+  box-shadow: none !important;
+}
+.kitchen-mode [data-testid="stTextInput"] input {
+  border: 1.5px solid var(--line-strong) !important;
+  border-radius: var(--r-md) !important;
+  padding: 8px 14px !important;
+  font-size: 13.5px !important;
+  background: #FFFFFF !important;
+}
+.kitchen-mode [data-testid="stTextInput"] input:focus {
+  border-color: var(--blue) !important;
+  box-shadow: 0 0 0 4px var(--blue-soft) !important;
+  outline: none !important;
+}
+/* + 추가 버튼 */
+.kitchen-mode .st-key-add_ing_btn button {
+  background: var(--blue-soft) !important;
+  color: var(--blue-ink) !important;
+  border: none !important;
+  border-radius: var(--r-sm) !important;
+  padding: 7px 13px !important;
+  font-size: 12.5px !important;
+  font-weight: 700 !important;
+  height: 100% !important;
+}
+.kitchen-mode .st-key-add_ing_btn button:hover {
+  background: var(--blue-soft-2) !important;
+}
+/* + 취향 추가 버튼 (k-add 스타일) */
+.kitchen-mode .st-key-add_pref_btn button {
+  background: none !important;
+  border: 1.5px dashed var(--line-strong) !important;
+  color: var(--ink-3) !important;
+  border-radius: var(--r-pill) !important;
+  padding: 8px 15px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  box-shadow: none !important;
+}
+.kitchen-mode .st-key-add_pref_btn button:hover {
+  border-color: var(--blue) !important;
+  color: var(--blue) !important;
+}
+/* 완료 처리 버튼 숨김 (hidden trigger) */
+.kitchen-mode .st-key-kitchen_complete_trigger button,
+.kitchen-mode [class*="st-key-kitchen_complete_"] button,
+.kitchen-mode [class*="st-key-view_recipe_"] button {
+  display: none !important;
+}
+/* 취향 추가 - confirm/cancel 버튼 */
+.kitchen-mode .st-key-confirm_add_pref button {
+  background: var(--blue) !important;
+  color: #fff !important;
+  border: none !important;
+  border-radius: var(--r-md) !important;
+  font-weight: 700 !important;
+}
+.kitchen-mode .st-key-cancel_add_pref button {
+  background: var(--surface) !important;
+  color: var(--ink) !important;
+  border: 1px solid var(--line-strong) !important;
+  border-radius: var(--r-md) !important;
+  font-weight: 600 !important;
+}

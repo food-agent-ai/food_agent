@@ -46,7 +46,8 @@ description: >
 
 ### 절차
 1. **앱 실행 확인** — `http://localhost:8501` 에 앱이 뜨는지 확인 (안 뜨면 실행 후 진행)
-2. **Chrome DevTools JS로 실제 구조 파악**:
+2. **스크린샷 직접 촬영** — `mcp__Claude_in_Chrome__computer` `screenshot` 액션으로 수정 전 현재 상태를 캡처하고, 이미지를 육안으로 검토해 문제점을 먼저 파악한다. JS 검사보다 먼저 수행.
+3. **Chrome DevTools JS로 실제 구조 파악**:
    ```js
    // 수정할 요소의 computed styles
    const el = document.querySelector('YOUR_SELECTOR');
@@ -63,6 +64,59 @@ description: >
    ```
 3. **원인 확인 후 CSS 작성** — 실제 셀렉터와 computed value를 기반으로 fix 작성
 
+### React 디자인 → Streamlit 변환 원칙
+
+이 프로젝트의 Claude design(`.tar.gz`)은 React 기반 참조 디자인이다. Streamlit으로 구현 시 다음 원칙을 따른다:
+
+**핵심 제약: Streamlit 컴포넌트는 HTML 문자열 div 안에 들어가지 않는다.**
+
+| React 패턴 | Streamlit 구현 방법 |
+|-----------|-------------------|
+| JSX div로 카드 감싸기 | `st.container(border=False)` + CSS로 카드 스타일 주입 |
+| 버튼 onClick | hidden `st.button` + `components.html()` JS로 클릭 연결 |
+| 전체 행 클릭 영역 | HTML `data-action` 속성 + JS → hidden st.button 트리거 |
+| CSS 변수/클래스 | `st.markdown` 전역 `<style>` 블록으로 주입 |
+| max-width 레이아웃 | Streamlit block container CSS 오버라이드 (`[data-testid]` 셀렉터) |
+
+**hidden button JS 패턴 (기준 구현):**
+```python
+# 1. HTML에 data 속성으로 액션 마킹
+st.markdown('<button data-action="del-0">×</button>', unsafe_allow_html=True)
+
+# 2. 실제 Streamlit 버튼은 숨김 (CSS로 display:none)
+if st.button("_", key="del_0"):
+    # 실제 로직
+    ...
+
+# 3. components.html JS로 연결
+components.html("""<script>
+(function() {
+  var doc = window.parent.document;
+  doc.querySelectorAll('[data-action]').forEach(function(btn) {
+    if (btn.dataset.bound) return;
+    btn.dataset.bound = '1';
+    btn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      var key = btn.getAttribute('data-action');
+      var hidden = doc.querySelector('.st-key-' + key + ' button');
+      if (hidden) hidden.click();
+    });
+  });
+})();
+</script>""", height=0)
+```
+
+**패턴 안전성:**
+- ✅ XSS 안전: `html.escape()`로 사용자 입력 이스케이프 필수 (기존 코드에서 이미 적용 중)
+- ✅ JS 격리: `components.html()`은 iframe 안에서 실행, `window.parent.document` 접근은 같은 origin이므로 안전
+- ⚠️ 셀렉터 취약성: `st-key-*` 클래스는 Streamlit 버전 변경 시 깨질 수 있음 — 버전 고정 권장
+- ⚠️ 접근성: 숨김 버튼은 키보드 접근 불가 — 내부 도구이므로 허용
+
+**`unsafe_allow_html=True` 사용 규칙:**
+- 사용자 입력값은 반드시 `html.escape()` 적용 후 삽입
+- 정적 HTML(아이콘, 레이아웃)에는 자유롭게 사용 가능
+- 외부 API 응답 데이터도 이스케이프 필수
+
 ### Streamlit CSS 작업 규칙
 - `st.markdown('<div class="X">')` 로 만든 div는 **자식 Streamlit 컴포넌트를 감싸지 못함** — 빈 div로 남음. padding/layout이 필요하면 Streamlit의 실제 컨테이너(`[data-testid="stVerticalBlock"]`, `[data-testid="stMainBlockContainer"]` 등)에 적용
 - CSS 셀렉터 작성 전 JS로 실제 class/testid 확인 필수
@@ -78,16 +132,19 @@ description: >
 **computed styles만으로는 완전하지 않음** — 레이아웃 적절성, 여백 균형, 시각적 일관성은 사람의 눈으로만 검증 가능.
 
 **검증 프로세스:**
-1. **Computed style 확인** (DevTools JS)
+1. **Screenshot 직접 촬영** — `mcp__Claude_in_Chrome__computer` `screenshot` 액션으로 수정 후 화면을 캡처한다. **이 단계는 생략 불가.** 스크린샷을 캡처한 뒤 이미지를 육안으로 검토하고, 다음을 확인한다:
+   - 헤더/패널이 의도한 위치에 있는가?
+   - 여백·패딩이 디자인과 일치하는가?
+   - 버튼·인풋이 정상 스타일로 보이는가?
+   - 카드 경계가 올바른가?
+2. **Computed style 확인** (DevTools JS)
    - 수치적 정확성 검증 (gap, padding, margin, width 등)
    - 예: `gap: 0px`, `padding: 0px 24px`, `top: 0px`
-2. **Screenshot 캡처** (verifier-streamlit)
-   - 앱 실행 후 해당 뷰 스크린샷
-   - 여러 뷰포트 크기 테스트 (mobile/tablet/desktop)
-3. **Visual 검수** (육안)
+3. **Visual 검수** (스크린샷 기반)
    - 좌우 여백이 동일한가?
    - 칩의 간격과 정렬이 의도한 대로인가?
    - 레이아웃이 디자인과 일치하는가?
+   - 스크린샷에서 이상한 부분이 보이면 JS로 추가 진단
 
 **QA에서 image 기반 검증이 필수인 이유:**
 - computed style `gap: 0px` ≠ visual adequacy (실제로 topbar 위치가 맞는지 확인)
