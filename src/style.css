@@ -1,0 +1,935 @@
+/* ============================================================
+   style.css — food-agent 전체 스타일시트
+   main.py의 load_css()에서 로드됨
+   ============================================================ */
+
+/* === 섹션 A: 메인 CSS === */
+    @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css');
+    @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&display=swap');
+
+    :root {
+      /* ---- Canvas & surfaces ---- */
+      --bg:        #F4F6F9;
+      --bg-soft:   #EDF0F5;
+      --surface:   #FFFFFF;
+      --surface-2: #FAFBFC;
+      --surface-3: #F5F7FA;
+
+      /* ---- Ink ---- */
+      --ink:       #14171F;
+      --ink-2:     #555E6E;
+      --ink-3:     #8A93A3;
+      --ink-4:     #B4BBC7;
+
+      /* ---- Lines ---- */
+      --line:      #E6E9EF;
+      --line-2:    #EEF1F5;
+      --line-strong: #D7DCE5;
+
+      /* ---- Brand blue ---- */
+      --blue:      #2F6BFF;
+      --blue-600:  #1F5BF0;
+      --blue-700:  #1A4FD6;
+      --blue-soft: #ECF1FF;
+      --blue-soft-2: #E0E8FF;
+      --blue-ink:  #1B47B8;
+
+      /* ---- Accents ---- */
+      --green:     #15A862;
+      --green-soft:#E4F6EC;
+      --green-ink: #0E7C48;
+      --amber:     #E08600;
+      --amber-soft:#FCF1DC;
+      --amber-ink: #9A5B00;
+      --naver:     #03C75A;
+      --rose:      #E5484D;
+      --rose-soft: #FCEBEC;
+
+      /* ---- Radius ---- */
+      --r-xs: 7px;
+      --r-sm: 10px;
+      --r-md: 14px;
+      --r-lg: 18px;
+      --r-xl: 24px;
+      --r-pill: 999px;
+
+      /* ---- Shadow ---- */
+      --sh-xs: 0 1px 2px rgba(20,23,31,.05);
+      --sh-sm: 0 1px 3px rgba(20,23,31,.06), 0 1px 2px rgba(20,23,31,.04);
+      --sh-md: 0 4px 14px rgba(20,23,31,.07), 0 1px 3px rgba(20,23,31,.05);
+      --sh-lg: 0 12px 34px rgba(20,23,31,.10), 0 3px 8px rgba(20,23,31,.05);
+      --sh-blue: 0 6px 18px rgba(47,107,255,.28);
+
+      /* ---- Type ---- */
+      --font: 'Pretendard', -apple-system, system-ui, sans-serif;
+      --mono: 'DM Mono', ui-monospace, 'SF Mono', monospace;
+
+      --sidebar-w: 248px;
+    }
+
+    .mono { font-family: var(--mono); font-feature-settings: "tnum"; letter-spacing: -0.02em; }
+
+    /* ============================================================
+       Streamlit 오버라이드
+       ============================================================ */
+    .stApp, [data-testid="stAppViewContainer"] {
+        background: var(--bg) !important;
+        font-family: var(--font);
+    }
+    [data-testid="stHeader"] { background: transparent !important; }
+    /* Streamlit 헤더/푸터 완전 숨김 (Deploy 버튼 포함) */
+    [data-testid="stHeader"] { display: none !important; }
+    header[data-testid="stHeader"] { display: none !important; }
+    footer { display: none !important; }
+    #MainMenu { visibility: hidden; }
+    .stDeployButton { display: none !important; }
+    [data-testid="stToolbarActions"] { display: none !important; }
+    [data-testid="stStatusWidget"] { display: none !important; }
+    [data-testid="stDecoration"] { display: none !important; }
+
+    [data-testid="stSidebar"] {
+        background: var(--surface) !important;
+        border-right: 1px solid var(--line);
+    }
+    [data-testid="stSidebar"] > div:first-child { padding-top: 0; }
+    /* 메인 컨테이너: padding 0 (topbar가 상단에 바로 붙음) */
+    [data-testid="stMainBlockContainer"] {
+        padding: 0 !important; max-width: 100% !important; overflow-x: hidden !important;
+        flex: 1 !important;          /* stMain(flex-col) 안에서 남은 높이 채움 */
+        display: flex !important;    /* stVerticalBlock을 flex 자식으로 확장 */
+        flex-direction: column !important;
+    }
+    /* stMain 안 Streamlit 자동생성 빈 스페이서 div 제거 (채팅 뷰 아래 빈 공간 원인) */
+    section.stMain > div:not([data-testid]) {
+        height: 0 !important;
+        overflow: hidden !important;
+        flex: 0 0 0px !important;
+    }
+    /* 스크롤 시 sticky topbar(60px) 뒤로 콘텐츠가 숨지 않도록 */
+    [data-testid="stMain"] {
+        scroll-padding-top: 64px !important;
+    }
+    .main .block-container { padding: 0 !important; max-width: 100% !important; }
+    /* 채팅/홈/주방 뷰 콘텐츠 영역 좌우 여백 + flex gap 제거 */
+    [data-testid="stMainBlockContainer"] > [data-testid="stVerticalBlock"] {
+        padding: 0 24px;
+        box-sizing: border-box;
+        gap: 0 !important;           /* height:0 첫 자식 + gap 16px = topbar 16px 밀림 방지 */
+        flex: 1 !important;          /* stMainBlockContainer(flex-col) 안에서 남은 공간 채움 */
+    }
+    /* topbar를 담은 stElementContainer를 topbar 높이(60px)로 고정
+       (컨테이너가 44px라 topbar가 16px 오버플로우 → 첫 AI 버블 가림 방지) */
+    [data-testid="stElementContainer"]:has(.topbar) {
+        min-height: 60px !important;
+        height: 60px !important;
+    }
+    /* topbar full-width (padding 상쇄) */
+    .topbar {
+        margin-left: -24px !important;
+        margin-right: -24px !important;
+        width: calc(100% + 48px) !important;
+        box-sizing: border-box !important;
+    }
+    /* 메인 컨텐츠 영역 좌우 여백 확보 */
+    .main { min-width: 0; overflow-x: hidden; }
+
+    /* 파일 업로더: 기본 UI 전체 숨김 (파일 정보 박스 포함) */
+    [data-testid="stFileUploader"] {
+        height: 0 !important; overflow: hidden !important;
+        position: absolute !important; width: 1px !important;
+        margin: 0 !important; padding: 0 !important; opacity: 0 !important;
+    }
+
+    /* st.chat_input → composer 스타일 */
+    [data-testid="stChatInputContainer"] {
+        border-top: 1px solid var(--line) !important;
+        background: rgba(255,255,255,.92) !important;
+        backdrop-filter: blur(8px) !important;
+        padding: 12px 26px 16px !important;
+    }
+    [data-testid="stChatInputContainer"] > div {
+        max-width: 760px !important;
+        margin: 0 auto !important;
+        border: 1.5px solid var(--line-strong) !important;
+        border-radius: var(--r-lg) !important;
+        background: var(--surface) !important;
+        display: flex !important;
+        align-items: center !important;
+        padding: 4px 6px 4px 16px !important;
+        gap: 10px !important;
+    }
+    [data-testid="stChatInputContainer"] > div:focus-within {
+        border-color: var(--blue) !important;
+        box-shadow: 0 0 0 4px var(--blue-soft) !important;
+    }
+    [data-testid="stChatInputTextArea"] {
+        font-family: var(--font) !important;
+        font-size: 14.5px !important;
+        color: var(--ink) !important;
+        padding: 9px 0 !important;
+        min-height: 0 !important;
+    }
+    [data-testid="stChatInputTextArea"]::placeholder { color: var(--ink-4) !important; }
+    [data-testid="stChatInputSubmitButton"] > button {
+        background: var(--blue) !important; color: #fff !important;
+        border-radius: 12px !important; border: none !important;
+        width: 40px !important; height: 40px !important; padding: 0 !important;
+        box-shadow: var(--sh-blue) !important; flex-shrink: 0 !important;
+    }
+    [data-testid="stChatInputSubmitButton"] > button:disabled,
+    [data-testid="stChatInputSubmitButton"] > button[disabled] {
+        background: var(--line-strong) !important; box-shadow: none !important;
+    }
+    .stButton > button {
+        border-radius: var(--r-md) !important;
+        font-family: var(--font) !important;
+        font-weight: 700 !important;
+    }
+    .stFileUploader { border-radius: var(--r-lg) !important; }
+
+    /* ============================================================
+       SIDEBAR
+       ============================================================ */
+    .sidebar { width: var(--sidebar-w); min-width: var(--sidebar-w); background: var(--surface);
+      border-right: 1px solid var(--line); display: flex; flex-direction: column; height: 100%; }
+    .sb-brand { display: flex; align-items: center; gap: 11px; padding: 20px 20px 16px; }
+    .sb-logo {
+      width: 38px; height: 38px; border-radius: 11px;
+      background: linear-gradient(155deg, var(--blue) 0%, var(--blue-700) 100%);
+      display: grid; place-items: center; box-shadow: var(--sh-blue);
+      color: #fff; flex-shrink: 0; font-size: 19px;
+    }
+    .sb-brand-name { font-weight: 800; font-size: 16px; letter-spacing: -0.02em; color: var(--ink); }
+    .sb-brand-sub { font-size: 11.5px; color: var(--ink-3); margin-top: 1px; font-weight: 500; }
+
+    .sb-new {
+      margin: 4px 14px 14px; display: flex; align-items: center; justify-content: center; gap: 8px;
+      padding: 11px 14px; background: var(--blue); color: #fff; border: none; border-radius: var(--r-md);
+      font-weight: 700; font-size: 13.5px; box-shadow: var(--sh-blue);
+      transition: transform .12s ease, background .15s ease;
+    }
+    .sb-new:hover { background: var(--blue-600); transform: translateY(-1px); }
+    .sb-new:active { transform: translateY(0); }
+
+    .sb-nav { padding: 0 12px; display: flex; flex-direction: column; gap: 2px; }
+    .sb-nav-item {
+      display: flex; align-items: center; gap: 11px; padding: 9px 12px; border-radius: var(--r-sm);
+      background: none; border: none; width: 100%; text-align: left;
+      color: var(--ink-2); font-weight: 600; font-size: 13.5px;
+      transition: background .12s ease, color .12s ease;
+    }
+    .sb-nav-item:hover { background: var(--surface-3); color: var(--ink); }
+    .sb-nav-item.active { background: var(--blue-soft); color: var(--blue-ink); }
+    .sb-nav-item.active svg { color: var(--blue); }
+    .sb-nav-item svg { color: var(--ink-3); flex-shrink: 0; }
+    .sb-nav-count {
+      margin-left: auto; font-size: 11px; font-weight: 700;
+      background: var(--surface-3); color: var(--ink-3);
+      padding: 1px 7px; border-radius: var(--r-pill); min-width: 20px; text-align: center;
+    }
+    .sb-nav-item.active .sb-nav-count { background: var(--blue-soft-2); color: var(--blue-ink); }
+
+    .sb-section-label {
+      padding: 16px 14px 7px; font-size: 11px; font-weight: 700;
+      color: var(--ink-4); letter-spacing: 0.04em; text-transform: uppercase;
+    }
+    .sb-saved { flex: 1; overflow-y: auto; padding: 0 12px 12px; }
+    .sb-saved::-webkit-scrollbar { width: 6px; }
+    .sb-saved::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 3px; }
+
+    .sb-recipe {
+      display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: var(--r-sm);
+      background: none; border: none; width: 100%; text-align: left; transition: background .12s ease;
+    }
+    .sb-recipe:hover { background: var(--surface-3); }
+    .sb-recipe.active { background: var(--blue-soft); }
+    .sb-recipe-thumb {
+      width: 30px; height: 30px; border-radius: 8px; flex-shrink: 0;
+      display: grid; place-items: center; font-size: 15px;
+      background: var(--surface-3); border: 1px solid var(--line);
+    }
+    .sb-recipe-name { font-size: 13px; font-weight: 600; color: var(--ink);
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .sb-recipe-meta { font-size: 10.5px; color: var(--ink-3); margin-top: 1px; }
+    .sb-status-dot { width: 7px; height: 7px; border-radius: 50%; margin-left: auto; flex-shrink: 0; }
+    .dot-cart { background: var(--amber); }
+    .dot-done { background: var(--green); }
+
+    .sb-recipe-wrap {
+      display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: var(--r-sm);
+      width: 100%; text-align: left;
+    }
+    .sb-recipe-wrap:hover { background: var(--surface-3); }
+
+    .sb-foot { border-top: 1px solid var(--line); padding: 12px 16px; display: flex; align-items: center; gap: 10px; }
+    .sb-avatar {
+      width: 30px; height: 30px; border-radius: 50%;
+      background: var(--blue-soft); color: var(--blue-ink);
+      display: grid; place-items: center; font-weight: 800; font-size: 12px;
+    }
+
+    /* ============================================================
+       TOPBAR
+       ============================================================ */
+    .topbar {
+      height: 60px; min-height: 60px;
+      border-bottom: 1px solid var(--line); background: rgba(255,255,255,.82); backdrop-filter: blur(8px);
+      display: flex; align-items: center; gap: 14px; padding: 0 26px; margin-bottom: 0;
+      position: sticky; top: 0; z-index: 100;
+    }
+    .topbar-title { font-weight: 800; font-size: 16.5px; letter-spacing: -0.02em; color: var(--ink); }
+    .topbar-sub { font-size: 12.5px; color: var(--ink-3); font-weight: 500; }
+    .topbar-spacer { flex: 1; }
+    .topbar-status {
+      display: flex; align-items: center; gap: 7px; font-size: 12.5px; font-weight: 600;
+      color: var(--green-ink); background: var(--green-soft); padding: 5px 11px; border-radius: var(--r-pill);
+    }
+    .live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green);
+      box-shadow: 0 0 0 0 rgba(21,168,98,.5); animation: pulse 2.2s infinite; display: inline-block; }
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(21,168,98,.45); }
+      70% { box-shadow: 0 0 0 6px rgba(21,168,98,0); }
+      100% { box-shadow: 0 0 0 0 rgba(21,168,98,0); }
+    }
+
+    .scroll { flex: 1; overflow-y: auto; }
+    .scroll::-webkit-scrollbar { width: 9px; }
+    .scroll::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 5px; border: 2px solid var(--bg); }
+    .scroll::-webkit-scrollbar-track { background: transparent; }
+
+    /* ============================================================
+       BUTTONS / CHIPS
+       ============================================================ */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+      border: 1px solid transparent; border-radius: var(--r-md);
+      font-weight: 700; font-size: 13.5px; padding: 10px 16px; transition: all .14s ease; white-space: nowrap;
+    }
+    .btn-primary { background: var(--blue); color: #fff; box-shadow: var(--sh-blue); }
+    .btn-primary:hover { background: var(--blue-600); transform: translateY(-1px); }
+    .btn-primary:active { transform: translateY(0); }
+    .btn-primary:disabled { background: var(--line-strong); color: #fff; box-shadow: none; cursor: not-allowed; transform: none; }
+    .btn-ghost { background: var(--surface); color: var(--ink); border-color: var(--line-strong); box-shadow: var(--sh-xs); }
+    .btn-ghost:hover { background: var(--surface-3); border-color: var(--ink-4); }
+    .btn-soft { background: var(--blue-soft); color: var(--blue-ink); }
+    .btn-soft:hover { background: var(--blue-soft-2); }
+    .btn-green { background: var(--green); color: #fff; box-shadow: 0 6px 18px rgba(21,168,98,.26); }
+    .btn-green:hover { background: var(--green-ink); transform: translateY(-1px); }
+    .btn-sm { padding: 7px 13px; font-size: 12.5px; border-radius: var(--r-sm); }
+    .btn-lg { padding: 13px 22px; font-size: 14.5px; border-radius: var(--r-md); }
+
+    .chip {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: var(--surface); border: 1.5px solid var(--blue-soft-2);
+      color: var(--blue-ink); font-weight: 600; font-size: 13px;
+      padding: 8px 14px; border-radius: var(--r-pill); transition: all .13s ease;
+    }
+    .chip:hover { border-color: var(--blue); background: var(--blue-soft); transform: translateY(-1px); }
+    .chip.selected { background: var(--blue); color: #fff; border-color: var(--blue); }
+
+    /* ============================================================
+       CHAT
+       ============================================================ */
+    .chat-wrap { max-width: 760px; margin: 0 auto; padding: 24px 32px 40px; box-sizing: border-box; scroll-padding-top: 70px; }
+    /* QA-2: 스크롤바 공간 확보로 topbar 우측 비대칭 방지 */
+    [data-testid="stMain"] { scrollbar-gutter: stable !important; }
+    /* 채팅 히스토리 컨테이너 — 헤더(60px) 아래 여백 + 좌우 여백 */
+    [data-testid="stMarkdownContainer"]:has(.msg-ai),
+    [data-testid="stMarkdownContainer"]:has(.msg-user) {
+        padding: 20px 32px 8px !important;
+    }
+    /* 첫 번째 메시지 위쪽 여백 (헤더와 붙는 문제 해결) */
+    .msg-ai:first-child { margin-top: 4px !important; }
+    .msg-ai { display: flex; gap: 12px; margin-bottom: 20px; max-width: 90%; }
+    .msg-ai-avatar {
+      width: 36px; height: 36px; border-radius: 11px; flex-shrink: 0;
+      background: linear-gradient(155deg, var(--blue) 0%, var(--blue-700) 100%);
+      display: grid; place-items: center; color: #fff; box-shadow: var(--sh-sm); margin-top: 2px; font-size: 17px;
+    }
+    .bubble-ai {
+      background: var(--surface); border: 1px solid var(--line);
+      border-radius: 6px 16px 16px 16px; padding: 13px 16px;
+      font-size: 14.5px; line-height: 1.62; color: var(--ink); box-shadow: var(--sh-xs);
+    }
+    .bubble-ai b { font-weight: 700; }
+    .bubble-ai .sub { color: var(--ink-3); font-size: 13px; }
+
+    .msg-user { display: flex; justify-content: flex-end; margin-bottom: 20px; }
+    .bubble-user {
+      background: var(--blue); color: #fff; border-radius: 16px 6px 16px 16px;
+      padding: 12px 16px; font-size: 14.5px; line-height: 1.55; max-width: 75%;
+      box-shadow: var(--sh-blue); font-weight: 500;
+    }
+    .bubble-user.photo { padding: 6px; }
+    .bubble-user.photo img, .bubble-user.photo .ph { border-radius: 12px; display: block; }
+
+    .quick-row { display: flex; flex-wrap: wrap; gap: 9px; margin: 0 0 20px 48px; }
+
+    /* spinner 숨김 — 타이핑 인디케이터로 대체 */
+    [data-testid="stSpinner"] { display: none !important; }
+
+    /* 퀵리플라이 칩 — Step 2/3 container key로 스코핑 (IMG-1) */
+    [class*="st-key-step2_chips"] [data-testid="stHorizontalBlock"],
+    [class*="st-key-step3_chips"] [data-testid="stHorizontalBlock"] {
+      flex-wrap: wrap !important;
+      gap: 8px !important;
+      padding-left: 48px !important;
+      margin-bottom: 8px !important;
+    }
+    [class*="st-key-step2_chips"] [data-testid="stColumn"],
+    [class*="st-key-step3_chips"] [data-testid="stColumn"] {
+      flex: 0 0 auto !important;
+      width: auto !important;
+      min-width: 0 !important;
+    }
+    [class*="st-key-step2_chips"] button,
+    [class*="st-key-step3_chips"] button {
+      background: var(--surface) !important;
+      border: 1.5px solid var(--blue-soft-2) !important;
+      color: var(--blue-ink) !important;
+      font-weight: 600 !important;
+      font-size: 13px !important;
+      padding: 8px 14px !important;
+      border-radius: var(--r-pill) !important;
+      white-space: nowrap !important;
+      width: auto !important;
+      min-width: 0 !important;
+      box-shadow: none !important;
+      transition: all .13s ease !important;
+    }
+    [class*="st-key-step2_chips"] button:hover,
+    [class*="st-key-step3_chips"] button:hover {
+      border-color: var(--blue) !important;
+      background: var(--blue-soft) !important;
+    }
+    /* IMG-3: Step 2/3 아래 빈 여백 제거 */
+    [class*="st-key-step2_chips"],
+    [class*="st-key-step3_chips"] {
+      margin-bottom: 0 !important;
+    }
+
+    .typing { display: flex; gap: 4px; padding: 4px 2px; }
+    .typing i { width: 7px; height: 7px; border-radius: 50%; background: var(--ink-4); animation: bounce 1.3s infinite; }
+    .typing i:nth-child(2) { animation-delay: .18s; }
+    .typing i:nth-child(3) { animation-delay: .36s; }
+    @keyframes bounce { 0%,60%,100% { transform: translateY(0); opacity:.5; } 30% { transform: translateY(-5px); opacity:1; } }
+
+    /* upload zone */
+    .upload-zone {
+      margin: 4px 0 18px 48px; max-width: 420px;
+      border: 2px dashed var(--line-strong); border-radius: var(--r-lg);
+      background: var(--surface-2); padding: 26px;
+      display: flex; flex-direction: column; align-items: center; gap: 12px;
+      text-align: center; transition: all .16s ease;
+    }
+    .upload-zone:hover { border-color: var(--blue); background: var(--blue-soft); }
+    .upload-ic { width: 50px; height: 50px; border-radius: 14px; background: var(--blue-soft);
+      color: var(--blue); display: grid; place-items: center; }
+    .upload-zone h4 { margin: 0; font-size: 14.5px; font-weight: 700; color: var(--ink); }
+    .upload-zone p { margin: 0; font-size: 12.5px; color: var(--ink-3); }
+
+    .ph {
+      background-image: repeating-linear-gradient(45deg, #EEF1F6 0 11px, #E4E8EF 11px 22px);
+      display: grid; place-items: center; color: var(--ink-3);
+      font-family: var(--mono); font-size: 12px; position: relative;
+    }
+    .ph.food { background-image: repeating-linear-gradient(45deg, #F3ECDF 0 11px, #EDE3D0 11px 22px); }
+
+    /* ============================================================
+       RECIPE CARD
+       ============================================================ */
+    .recipe-card {
+      background: var(--surface); border: 1px solid var(--line);
+      border-radius: var(--r-lg); box-shadow: var(--sh-md); overflow: hidden; margin-bottom: 6px;
+    }
+    .rc-head { padding: 18px 20px 14px; }
+    .rc-eyebrow { font-size: 11.5px; font-weight: 700; color: var(--blue); letter-spacing: 0.03em; text-transform: uppercase; }
+    .rc-title { font-size: 21px; font-weight: 800; margin: 5px 0 6px; letter-spacing: -0.025em; color: var(--ink); }
+    .rc-intro { font-size: 13.5px; color: var(--ink-2); line-height: 1.6; }
+
+    .rc-meta { display: flex; gap: 10px; padding: 0 20px 16px; flex-wrap: wrap; }
+    .rc-meta-item {
+      display: flex; align-items: center; gap: 7px;
+      background: var(--surface-3); border: 1px solid var(--line-2);
+      border-radius: var(--r-sm); padding: 8px 12px; flex: 1; min-width: 92px;
+    }
+    .rc-meta-ic { color: var(--blue); display: grid; place-items: center; }
+    .rc-meta-k { font-size: 10.5px; color: var(--ink-3); font-weight: 600; display: block; }
+    .rc-meta-v { font-size: 14px; font-weight: 800; display: block; color: var(--ink); }
+
+    .rc-section { padding: 16px 20px; border-top: 1px solid var(--line-2); }
+    .rc-section-title { display: flex; align-items: center; gap: 8px; font-size: 13.5px; font-weight: 800; margin-bottom: 13px; color: var(--ink); }
+    .rc-section-title .n { color: var(--ink-4); font-weight: 700; font-size: 12px; margin-left: auto; }
+
+    .ing-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .ing-pill {
+      display: flex; align-items: center; gap: 9px;
+      background: var(--surface-2); border: 1px solid var(--line-2);
+      border-radius: var(--r-sm); padding: 9px 12px;
+    }
+    .ing-check { width: 17px; height: 17px; border-radius: 5px; border: 1.5px solid var(--line-strong); flex-shrink: 0; display: grid; place-items: center; font-size: 10px; font-weight: 800; transition: all .12s; }
+    .ing-pill.have .ing-check { background: var(--green); border-color: var(--green); color: #fff; }
+    .ing-pill.missing { background: var(--amber-soft); border-color: #F0DCB0; }
+    .ing-pill.missing .ing-check { background: var(--amber-soft); border-color: var(--amber); color: var(--amber-ink); }
+    .ing-name { font-size: 13.5px; font-weight: 600; color: var(--ink); }
+    .ing-amt { margin-left: auto; font-size: 12.5px; color: var(--ink-2); white-space: nowrap; }
+    .ing-pill.missing .ing-amt { color: var(--amber-ink); font-weight: 600; }
+
+    .step { display: flex; gap: 13px; padding: 11px 0; }
+    .step:not(:last-child) { border-bottom: 1px solid var(--line-2); }
+    .step-n {
+      width: 26px; height: 26px; border-radius: 9px; flex-shrink: 0;
+      background: var(--blue-soft); color: var(--blue-ink);
+      display: grid; place-items: center; font-weight: 800; font-size: 13px; font-family: var(--mono);
+    }
+    .step-tx { font-size: 13.8px; line-height: 1.6; color: var(--ink); padding-top: 2px; }
+
+    /* legacy step/ing aliases (build_recipe_card_html 호환) */
+    .step-item { display: flex; align-items: flex-start; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line-2); font-size: 13.8px; line-height: 1.6; color: var(--ink); }
+    .step-item:last-child { border-bottom: none; padding-bottom: 4px; }
+    .step-num { min-width: 26px; height: 26px; border-radius: 9px; flex-shrink: 0; background: var(--blue-soft); color: var(--blue-ink); display: flex; align-items: center; justify-content: center; font-size: 12.5px; font-weight: 800; margin-top: 1px; }
+    .ing-pill.have { border-color: #B7EACA; background: #F2FBF4; }
+
+    /* ============================================================
+       SHOPPING (Naver)
+       ============================================================ */
+    .shop-block { margin-top: 14px; }
+    .shop-head { display: flex; align-items: baseline; gap: 9px; flex-wrap: wrap; }
+    .shop-head-sub { font-size: 11.5px; color: var(--ink-3); font-weight: 600; }
+    .shop-ing-label {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 13px; font-weight: 700; margin: 0 0 7px;
+      text-decoration: none; color: var(--ink);
+      padding: 2px 0; transition: color .12s ease;
+    }
+    .shop-ing-label:hover { color: var(--naver); }
+    .shop-ing-label:hover .shop-ing-name { text-decoration: underline; }
+    .shop-ing-name { color: var(--ink); }
+    .shop-item {
+      display: flex; align-items: center; gap: 11px;
+      background: var(--surface-2); border: 1px solid var(--line);
+      border-radius: var(--r-sm); padding: 10px 13px; margin-bottom: 6px;
+      text-decoration: none; color: var(--ink); transition: all .12s ease;
+    }
+    .shop-item:hover { border-color: var(--naver); background: #F2FBF5; transform: translateX(2px); }
+    .shop-title { font-size: 12.8px; font-weight: 600; line-height: 1.4; overflow: hidden;
+      text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
+    .shop-price { margin-left: auto; font-weight: 800; font-size: 13.5px; color: var(--ink); white-space: nowrap; font-family: var(--mono); }
+    .shop-search .shop-title { color: var(--ink-2); }
+
+    .save-path {
+      display: inline-flex; align-items: center; gap: 7px; margin-top: 10px;
+      background: var(--surface-3); border: 1px solid var(--line);
+      border-radius: var(--r-sm); padding: 6px 11px;
+      font-size: 11.5px; color: var(--ink-3); max-width: 100%;
+    }
+    .save-path svg { color: var(--ink-4); flex-shrink: 0; }
+    .save-path .mono { font-size: 11.5px; color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    /* ============================================================
+       HOME BOARD
+       ============================================================ */
+    .board { max-width: 1080px; margin: 0 auto; padding: 34px 34px 50px; }
+    .board-hero {
+      background:
+        radial-gradient(120% 140% at 88% -10%, rgba(47,107,255,.14) 0%, rgba(47,107,255,0) 50%),
+        linear-gradient(160deg, #1B47B8 0%, #2F6BFF 58%, #4F86FF 100%);
+      border-radius: var(--r-xl); padding: 34px 36px; color: #fff;
+      position: relative; overflow: hidden; box-shadow: var(--sh-lg);
+    }
+    .board-hero::after {
+      content: ""; position: absolute; right: -40px; bottom: -60px;
+      width: 280px; height: 280px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(255,255,255,.16) 0%, rgba(255,255,255,0) 70%);
+    }
+    .bh-eyebrow { font-size: 12.5px; font-weight: 700; opacity: .85; letter-spacing: 0.04em; }
+    .bh-title { font-size: 30px; font-weight: 800; margin: 9px 0 8px; letter-spacing: -0.03em; line-height: 1.18; }
+    .bh-sub { font-size: 14.5px; opacity: .9; line-height: 1.6; max-width: 460px; }
+    .bh-cta { margin-top: 22px; display: flex; gap: 11px; flex-wrap: wrap; position: relative; z-index: 2; }
+    .bh-btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: #fff; color: var(--blue-ink); font-weight: 800; font-size: 14px;
+      padding: 13px 20px; border: none; border-radius: var(--r-md);
+      box-shadow: 0 8px 22px rgba(0,0,0,.18); transition: transform .13s ease;
+    }
+    .bh-btn:hover { transform: translateY(-2px); }
+    .bh-btn.ghost { background: rgba(255,255,255,.16); color: #fff; box-shadow: none; }
+    .bh-btn.ghost:hover { background: rgba(255,255,255,.26); }
+
+    .board-row { display: flex; align-items: baseline; justify-content: space-between; margin: 34px 0 16px; }
+    .board-row h2 { font-size: 18px; font-weight: 800; letter-spacing: -0.02em; margin: 0; color: var(--ink); }
+    .board-row .link { font-size: 13px; font-weight: 700; color: var(--blue); background: none; border: none; display: flex; align-items: center; gap: 4px; }
+    .board-row .link:hover { color: var(--blue-700); }
+
+    .stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 20px; }
+    .stat-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md); padding: 16px 18px; box-shadow: var(--sh-xs); }
+    .stat-ic { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; margin-bottom: 11px; font-size: 17px; }
+    .stat-v { font-size: 23px; font-weight: 800; letter-spacing: -0.02em; font-family: var(--mono); color: var(--ink); }
+    .stat-k { font-size: 12.5px; color: var(--ink-3); font-weight: 600; margin-top: 1px; }
+
+    .recipe-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .r-tile {
+      background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg);
+      overflow: hidden; box-shadow: var(--sh-xs); transition: all .16s ease; text-align: left;
+      cursor: pointer; display: flex; flex-direction: column;
+    }
+    .r-tile:hover { box-shadow: var(--sh-md); transform: translateY(-3px); border-color: var(--line-strong); }
+    .r-tile-hero { height: 116px; position: relative; }
+    .r-tile-badge {
+      position: absolute; top: 10px; left: 10px;
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 11px; font-weight: 700; padding: 4px 9px; border-radius: var(--r-pill);
+      background: rgba(255,255,255,.92); backdrop-filter: blur(4px); box-shadow: var(--sh-xs);
+    }
+    .badge-cart { color: var(--amber-ink); }
+    .badge-done { color: var(--green-ink); }
+    .r-tile-body { padding: 13px 15px 15px; flex: 1; display: flex; flex-direction: column; }
+    .r-tile-name { font-size: 15px; font-weight: 800; letter-spacing: -0.02em; color: var(--ink); }
+    .r-tile-intro { font-size: 12.5px; color: var(--ink-3); margin: 5px 0 11px; line-height: 1.5;
+      overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; flex: 1; }
+    .r-tile-foot { display: flex; gap: 12px; align-items: center; font-size: 11.5px; color: var(--ink-3); font-weight: 600; }
+    .r-tile-foot span { display: flex; align-items: center; gap: 4px; }
+
+    .recipe-list { display: flex; flex-direction: column; gap: 8px; }
+    .r-listrow {
+      display: flex; align-items: center; gap: 14px; cursor: pointer;
+      background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md);
+      padding: 12px 16px; box-shadow: var(--sh-xs); transition: all .14s ease; text-align: left;
+    }
+    .r-listrow:hover { box-shadow: var(--sh-sm); border-color: var(--line-strong); transform: translateX(2px); }
+    .r-listrow-thumb { width: 46px; height: 46px; border-radius: 11px; flex-shrink: 0; }
+    .r-listrow-name { font-size: 14.5px; font-weight: 700; color: var(--ink); }
+    .r-listrow-intro { font-size: 12px; color: var(--ink-3); margin-top: 2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width: 420px; }
+
+    /* ============================================================
+       KITCHEN
+       ============================================================ */
+    .kitchen { max-width: 880px; margin: 0 auto; padding: 30px 30px 50px; }
+    .k-panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); box-shadow: var(--sh-xs); margin-bottom: 18px; overflow: hidden; }
+    .k-panel-head { padding: 18px 22px; border-bottom: 1px solid var(--line-2); display: flex; align-items: center; gap: 12px; }
+    .k-panel-ic { width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; flex-shrink: 0; font-size: 18px; }
+    .k-panel-title { font-size: 15.5px; font-weight: 800; color: var(--ink); }
+    .k-panel-sub { font-size: 12.5px; color: var(--ink-3); margin-top: 1px; }
+    .k-panel-body { padding: 18px 22px 22px; }
+
+    .ing-chips { display: flex; flex-wrap: wrap; gap: 9px; }
+    .k-ing {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-pill);
+      padding: 8px 9px 8px 14px; font-size: 13.5px; font-weight: 600; color: var(--ink);
+    }
+    .k-ing .amt { font-family: var(--mono); font-size: 12px; color: var(--ink-2); background: var(--surface-3); padding: 2px 8px; border-radius: var(--r-pill); }
+    .k-ing .x { width: 19px; height: 19px; border-radius: 50%; border: none; background: none; color: var(--ink-4); display: grid; place-items: center; }
+    .k-ing .x:hover { background: var(--rose-soft); color: var(--rose); }
+    .k-add {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: none; border: 1.5px dashed var(--line-strong); color: var(--ink-3);
+      border-radius: var(--r-pill); padding: 8px 15px; font-size: 13px; font-weight: 600;
+    }
+    .k-add:hover { border-color: var(--blue); color: var(--blue); }
+
+    .pref-list { display: flex; flex-direction: column; gap: 8px; }
+    .pref-row {
+      display: flex; align-items: center; gap: 11px;
+      background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-md); padding: 11px 14px;
+    }
+    .pref-ic { width: 24px; height: 24px; border-radius: 7px; display: grid; place-items: center; flex-shrink: 0; font-size: 14px; }
+    .pref-tx { font-size: 13.8px; font-weight: 600; color: var(--ink); }
+    .pref-row .x { margin-left: auto; width: 22px; height: 22px; border-radius: 6px; border: none; background: none; color: var(--ink-4); display: grid; place-items: center; }
+    .pref-row .x:hover { background: var(--rose-soft); color: var(--rose); }
+
+    .complete-line { display: flex; align-items: center; gap: 10px; padding: 9px 0; font-size: 13.5px; border-bottom: 1px solid var(--line-2); }
+    .complete-line .nm { font-weight: 700; }
+    .complete-line .chg { margin-left: auto; font-family: var(--mono); font-size: 12.5px; color: var(--ink-2); }
+    .complete-line .chg b { color: var(--green-ink); }
+    .cl-ic { width: 22px; height: 22px; border-radius: 6px; display: grid; place-items: center; flex-shrink: 0; }
+
+    /* ============================================================
+       MISC
+       ============================================================ */
+    .empty { text-align: center; padding: 50px 20px; color: var(--ink-3); }
+    .empty-ic { width: 60px; height: 60px; border-radius: 16px; background: var(--surface-3); display: grid; place-items: center; margin: 0 auto 16px; color: var(--ink-4); font-size: 26px; }
+    .fade-up { animation: fadeUp .42s cubic-bezier(.16,1,.3,1) both; }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .spin { animation: spin 0.9s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .divider-soft { height: 1px; background: var(--line-2); margin: 14px 0; }
+    .tag { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; font-weight: 700; padding: 3px 9px; border-radius: var(--r-pill); }
+    .tag-blue { background: var(--blue-soft); color: var(--blue-ink); }
+    .tag-green { background: var(--green-soft); color: var(--green-ink); }
+    .tag-amber { background: var(--amber-soft); color: var(--amber-ink); }
+
+    .suggest-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 16px 48px; align-items: center; }
+    .suggest-label { font-size: 11.5px; font-weight: 700; color: var(--ink-4); }
+    .suggest-chip {
+      display: inline-flex; align-items: center; gap: 5px;
+      background: var(--surface-3); border: 1px solid var(--line); color: var(--ink-2);
+      font-weight: 600; font-size: 12.5px; padding: 6px 12px; border-radius: var(--r-pill);
+      transition: all .12s ease;
+    }
+    .suggest-chip:hover { border-color: var(--blue); color: var(--blue-ink); background: var(--blue-soft); }
+
+    /* inline SVG icons (icons.jsx 이식) */
+    .icon-inline { display: inline-flex; vertical-align: middle; }
+
+    /* ============================================================
+       사이드바 Streamlit 버튼 → 디자인 nav/recipe 스타일 오버라이드
+       st-key-<key> 래퍼 클래스로 정밀 타겟팅 (Streamlit 1.57)
+       ============================================================ */
+    /* nav 숨겨진 트리거 버튼 — 완전히 숨김 */
+    .st-key-nav_home, .st-key-nav_chat, .st-key-nav_kitchen {
+        height: 0 !important; overflow: hidden !important;
+        margin: 0 !important; padding: 0 !important; min-height: 0 !important;
+    }
+    /* 사이드바 레시피 — 투명 오버레이 버튼 (> 대신 공백: stButton wrapper 관통)
+       QA-1/IMG-2: 버튼 높이를 비주얼 카드 높이(~46px)에 맞춰 다음 아이템 밀림 방지 */
+    /* 버튼 컨테이너 자체는 레이아웃 높이 0 — 비주얼 카드 위에 떠 있는 오버레이만 표시.
+       이렇게 해야 stVerticalBlock의 16px gap이 카드당 한 번만 적용된다. */
+    [class*="st-key-sb_recipe_"] {
+        height: 0 !important;
+        min-height: 0 !important;
+        margin: 0 !important;
+        overflow: visible !important;
+    }
+    [class*="st-key-sb_recipe_"] .stButton {
+        margin: 0 !important;
+        min-height: 0 !important;
+    }
+    [class*="st-key-sb_recipe_"] button {
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        color: transparent !important;
+        font-size: 0 !important;
+        height: 55px !important;
+        min-height: 55px !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        transform: translateY(-55px) !important;
+        position: relative !important;
+        z-index: 1 !important;
+        border-radius: var(--r-sm) !important;
+    }
+    [class*="st-key-sb_recipe_"] button:hover {
+        background: rgba(0,0,0,0.04) !important;
+    }
+    /* home CTA 숨겨진 버튼 */
+    .st-key-home_cta_new, .st-key-home_cta_kitchen {
+        height: 0 !important; overflow: hidden !important;
+        margin: 0 !important; padding: 0 !important; min-height: 0 !important;
+    }
+    /* 패턴 B: JS(components.html)로 트리거되는 hidden buttons (완전히 숨김) */
+    /* hidden del_ing / del_pref / tile 트리거 버튼 */
+    [class*="st-key-tile_"],
+    .st-key-home_link_kitchen,
+    [class*="st-key-del_ing_"], [class*="st-key-del_pref_"] {
+        height: 0 !important; overflow: hidden !important;
+        margin: 0 !important; padding: 0 !important; min-height: 0 !important;
+    }
+    /* '새 레시피 만들기' — sb-new 스타일 유지 */
+    .st-key-sb_new_recipe .stButton > button {
+        background: var(--blue) !important; color: #fff !important; border: none !important;
+        box-shadow: var(--sh-blue) !important; font-weight: 700 !important;
+        border-radius: var(--r-md) !important; padding: 11px 14px !important;
+    }
+    .st-key-sb_new_recipe .stButton > button:hover { background: var(--blue-600) !important; }
+
+    /* 완료 처리 버튼 (btn-green) */
+    [class*="st-key-kitchen_complete_"] .stButton > button {
+        background: var(--green) !important; color: #fff !important; border: none !important;
+        box-shadow: 0 6px 18px rgba(21,168,98,.26) !important; font-size: 12.5px !important;
+    }
+    [class*="st-key-kitchen_complete_"] .stButton > button:hover { background: var(--green-ink) !important; }
+    /* 레시피 보기 버튼 */
+    [class*="st-key-view_recipe_"] .stButton > button {
+        background: var(--surface) !important; color: var(--ink-2) !important;
+        border: 1px solid var(--line-strong) !important; box-shadow: var(--sh-xs) !important;
+        font-size: 12.5px !important; border-radius: var(--r-sm) !important;
+    }
+    [class*="st-key-view_recipe_"] .stButton > button:hover {
+        background: var(--blue-soft) !important; color: var(--blue-ink) !important;
+        border-color: var(--blue) !important;
+    }
+
+    /* ============================================================
+       채팅 quick-reply 칩 (.chip) — 인분/요청 버튼
+       ============================================================ */
+    [class*="st-key-serv_"] .stButton > button,
+    [class*="st-key-pref_"] .stButton > button {
+        background: var(--surface) !important;
+        border: 1.5px solid var(--blue-soft-2) !important;
+        color: var(--blue-ink) !important;
+        border-radius: var(--r-pill) !important;
+        font-weight: 600 !important; font-size: 13px !important;
+        box-shadow: none !important;
+    }
+    [class*="st-key-serv_"] .stButton > button:hover,
+    [class*="st-key-pref_"] .stButton > button:hover {
+        border-color: var(--blue) !important; background: var(--blue-soft) !important;
+        transform: translateY(-1px);
+    }
+
+    /* ============================================================
+       패턴 A: pure st.button() + CSS 오버라이드 (visible 버튼)
+       ============================================================ */
+    /* 레시피 확정 - btn-primary */
+    .st-key-confirm_recipe .stButton > button {
+        background: var(--blue) !important; color: #fff !important;
+        border: none !important; border-radius: var(--r-md) !important;
+        box-shadow: var(--sh-blue) !important; font-weight: 700 !important;
+        font-size: 13.5px !important; padding: 10px 20px !important;
+    }
+    .st-key-confirm_recipe .stButton > button:hover { background: var(--blue-600) !important; }
+
+    /* ghost 버튼들 */
+    .st-key-request_revision .stButton > button,
+    .st-key-reanalyze_btn .stButton > button,
+    .st-key-go_kitchen_btn .stButton > button,
+    .st-key-restart_btn .stButton > button,
+    .st-key-cancel_revision .stButton > button,
+    .st-key-send_revision .stButton > button {
+        background: var(--surface) !important; color: var(--ink) !important;
+        border: 1px solid var(--line-strong) !important; border-radius: var(--r-md) !important;
+        box-shadow: var(--sh-xs) !important; font-weight: 700 !important;
+        font-size: 13.5px !important; padding: 10px 16px !important;
+    }
+
+    /* 전송 버튼 */
+    .st-key-servings_submit .stButton > button,
+    .st-key-extra_submit .stButton > button {
+        background: var(--blue) !important; color: #fff !important;
+        border: none !important; border-radius: var(--r-md) !important;
+        font-weight: 700 !important;
+    }
+
+    /* 이미지 분석 시작 버튼 */
+    .st-key-analyze_start .stButton > button {
+        background: var(--blue) !important; color: #fff !important;
+        border: none !important; border-radius: var(--r-md) !important;
+        box-shadow: var(--sh-blue) !important; font-weight: 700 !important;
+    }
+
+    /* 사진 분석 시작 버튼 (현재 key 없이 type=primary 사용 중) */
+    [data-testid="stBaseButton-primary"] {
+        background: var(--blue) !important;
+        border-color: var(--blue) !important;
+    }
+    [data-testid="stBaseButton-primary"]:hover {
+        background: var(--blue-600) !important;
+        border-color: var(--blue-600) !important;
+    }
+
+    .sb-nav-item, .sb-brand-name, .sb-brand-sub, .topbar-title, .topbar-sub,
+    .bh-btn, .chip, .suggest-chip, .r-tile-badge, .tag, .r-tile-foot span,
+    .rc-meta-k, .rc-meta-v, .board-row h2, .board-row .link, .k-panel-title,
+    .sb-recipe-name, .stat-k, .stat-v, .topbar-status { white-space: nowrap; }
+
+    /* ============================================================
+       KITCHEN — 재료/취향 입력창 composer 스타일
+       ============================================================ */
+    .st-key-new_ing_input .stTextInput > div,
+    .st-key-new_pref_input .stTextInput > div {
+        border: 1.5px solid var(--line-strong) !important;
+        border-radius: var(--r-lg) !important;
+        background: var(--surface) !important;
+        padding: 2px 4px 2px 14px !important;
+        box-shadow: none !important;
+    }
+    .st-key-new_ing_input .stTextInput > div:focus-within,
+    .st-key-new_pref_input .stTextInput > div:focus-within {
+        border-color: var(--blue) !important;
+        box-shadow: 0 0 0 3px var(--blue-soft) !important;
+    }
+    .st-key-new_ing_input .stTextInput input,
+    .st-key-new_pref_input .stTextInput input {
+        border: none !important; padding: 8px 0 !important;
+        font-size: 13.5px !important; background: transparent !important;
+    }
+    /* + 추가 버튼 → btn-soft */
+    .st-key-add_ing_btn .stButton > button {
+        background: var(--blue-soft) !important; color: var(--blue-ink) !important;
+        border: none !important; border-radius: var(--r-sm) !important;
+        padding: 7px 13px !important; font-size: 12.5px !important; font-weight: 700 !important;
+    }
+    .st-key-add_ing_btn .stButton > button:hover { background: var(--blue-soft-2) !important; }
+    /* + 취향 추가 버튼 → k-add 스타일 */
+    .st-key-add_pref_btn .stButton > button {
+        background: none !important; color: var(--ink-3) !important;
+        border: 1.5px dashed var(--line-strong) !important;
+        border-radius: var(--r-pill) !important;
+        padding: 8px 15px !important; font-size: 13px !important; font-weight: 600 !important;
+    }
+    .st-key-add_pref_btn .stButton > button:hover {
+        border-color: var(--blue) !important; color: var(--blue) !important;
+    }
+    /* 취향 추가/취소 버튼 */
+    .st-key-confirm_add_pref .stButton > button {
+        background: var(--blue) !important; color: #fff !important;
+        border: none !important; border-radius: var(--r-sm) !important;
+        font-weight: 700 !important;
+    }
+    .st-key-cancel_add_pref .stButton > button {
+        background: var(--surface) !important; color: var(--ink) !important;
+        border: 1px solid var(--line-strong) !important; border-radius: var(--r-sm) !important;
+    }
+    /* topbar 위 여백 제거 (stHeader 숨긴 후) */
+    [data-testid="stAppViewContainer"] > section { padding-top: 0 !important; }
+
+    /* kitchen bordered container → k-panel 스타일 */
+    [data-testid="stVerticalBlockBorderWrapper"] {
+        border: 1px solid var(--line) !important;
+        border-radius: var(--r-lg) !important;
+        background: var(--surface) !important;
+        box-shadow: var(--sh-xs) !important;
+        padding: 0 10px 16px !important;
+        overflow: hidden !important;
+    }
+    /* kitchen container 내부 텍스트 인풋 여백 */
+    [data-testid="stVerticalBlockBorderWrapper"] .st-key-new_ing_input,
+    [data-testid="stVerticalBlockBorderWrapper"] .st-key-new_pref_input {
+        margin-top: 8px !important;
+    }
+
+/* === 섹션 B: DEV MODE === */
+        /* DEV MODE 플로팅 패널: 컨테이너 자체를 fixed로 (레이아웃 밖) */
+        [class*="st-key-_dev_panel"] {
+            position: fixed !important;
+            bottom: 20px !important;
+            right: 20px !important;
+            z-index: 9999 !important;
+            width: auto !important;
+            max-width: 300px !important;
+            background: rgba(15,15,25,0.96) !important;
+            border: 1.5px solid rgba(100,60,255,0.6) !important;
+            border-radius: 12px !important;
+            padding: 8px !important;
+            gap: 6px !important;
+            backdrop-filter: blur(8px) !important;
+            box-shadow: 0 8px 28px rgba(0,0,0,.4) !important;
+        }
+        [class*="st-key-_dev_panel"] button {
+            background: rgba(80,40,255,0.2) !important;
+            border: 1px solid rgba(100,60,255,0.4) !important;
+            color: #c4b5fd !important;
+            font-family: monospace !important;
+            font-size: 11px !important;
+            padding: 4px 8px !important;
+            border-radius: 6px !important;
+            white-space: nowrap !important;
+        }
+        [class*="st-key-_dev_panel"] button:hover {
+            background: rgba(80,40,255,0.4) !important;
+            border-color: rgba(100,60,255,0.7) !important;
+        }
+
+/* === 섹션 C: 파일 업로더 === */
+            [data-testid="stFileUploaderDropzone"],
+            [data-testid="stFileUploadDropzone"] {
+                border:none!important;background:none!important;
+                padding:0!important;min-height:0!important;
+            }
+            [data-testid="stFileUploaderDropzoneInstructions"],
+            [data-testid="stFileUploaderDropzone"] button,
+            [data-testid="stFileUploader"] > label { display:none!important; }
+            [data-testid="stFileUploader"] section { padding:0!important; }
