@@ -205,6 +205,7 @@ def build_recipe_prompt(
 - 순수 JSON 문자열만 반환한다. 마크다운 코드블록(```)이나 설명 문장 절대 포함 금지.
 - 모든 재료 양은 목표 인분({servings}인분) 기준으로 계산한다.
 - ingredients는 문자열 배열이며 각 항목은 "재료명(단위)" 형식으로 작성한다. 예: "닭고기(200g)", "간장(2큰술)".
+- 재료명은 요리 맥락을 반영해 구체적으로 작성한다. 예: "소고기" 대신 "소고기 다짐육", "돼지고기" 대신 "돼지고기 삼겹살", "패티" 대신 "햄버거 패티(소고기)", "면" 대신 "우동면". 쇼핑몰에서 바로 검색 가능한 수준의 명칭을 사용한다.
 - steps는 조리 단계를 순서대로 담되 번호를 붙이지 말고 문장으로 작성한다.
 - 취향 반영 우선순위: source.md > 추가 요청사항 > feedback.md.
 - missing_ingredients: 레시피에 필요하지만 source.md 보유 재료에 없는 것들을 담는다.
@@ -435,15 +436,15 @@ _NAVER_STOP_WORDS = [
 ]
 
 
-def get_shopping_items(dish_name: str, ingredient: str) -> list:
-    """네이버 쇼핑 API로 '{dish_name} {ingredient}' 검색, 정확도순 상위 3개 반환.
+def get_shopping_items(ingredient: str) -> list:
+    """네이버 쇼핑 API로 재료명만 검색, 정확도순 상위 3개 반환.
 
     반환: [{"title": str, "lprice": str, "link": str}, ...]
     API 키 미설정 또는 오류 시 빈 리스트 반환.
     """
     if not NAVER_CLIENT_ID or not NAVER_CLIENT_SECRET:
         return []
-    keyword = f"{dish_name} {ingredient}"
+    keyword = ingredient
     try:
         resp = requests.get(
             "https://openapi.naver.com/v1/search/shop.json",
@@ -480,7 +481,7 @@ def build_naver_shopping_url(ingredient: str) -> str:
     return f"https://search.shopping.naver.com/search/all?query={quote(ingredient.strip())}"
 
 
-def build_shopping_html(dish_name: str, missing_ingredients: list) -> str:
+def build_shopping_html(missing_ingredients: list) -> str:
     """missing_ingredients에 대한 네이버 쇼핑 검색 결과 HTML 섹션을 반환한다.
 
     API 키 미설정 시에는 네이버 쇼핑 검색 링크만 표시한다.
@@ -494,7 +495,7 @@ def build_shopping_html(dish_name: str, missing_ingredients: list) -> str:
         ing_name = _parse_ingredient_string(str(item))["name"]
         products = []
         if NAVER_CLIENT_ID and NAVER_CLIENT_SECRET:
-            products = get_shopping_items(dish_name, ing_name)
+            products = get_shopping_items(ing_name)
         search_url = html.escape(build_naver_shopping_url(ing_name), quote=True)
         blocks += (
             f'<div class="shop-block">'
@@ -2251,9 +2252,8 @@ def render_chat_view():
                 + "<br>".join(f"• {html.escape(str(_m))}" for _m in _saved_missing)
             )
             add_ai_message(_missing_html)
-            _load_dish = str(_pending_recipe.get("dish_name") or "")
             with st.spinner("네이버 쇼핑 검색 중..."):
-                _shop_html = build_shopping_html(_load_dish, _saved_missing)
+                _shop_html = build_shopping_html(_saved_missing)
             if _shop_html:
                 add_ai_message(_shop_html)
         st.rerun()
@@ -2507,9 +2507,8 @@ def render_chat_view():
                             _missing_confirmed = _confirmed.get("ingredients", [])
 
                     if _missing_confirmed:
-                        _dish_confirmed = str(_confirmed.get("dish_name") or "")
                         with st.spinner("네이버 쇼핑 검색 중..."):
-                            _shop_html_confirmed = build_shopping_html(_dish_confirmed, _missing_confirmed)
+                            _shop_html_confirmed = build_shopping_html(_missing_confirmed)
                         if _shop_html_confirmed:
                             add_ai_message(_shop_html_confirmed)
                     st.rerun()
