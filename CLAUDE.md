@@ -2,10 +2,10 @@
 
 ## 프로젝트 개요
 
-Groq Llama 4 Scout 기반 음식 사진 레시피 생성 Streamlit 앱.
+Gemini 2.5 Flash 기반 음식 사진 레시피 생성 Streamlit 앱.
 - 앱 진입점: `src/main.py`
 - 실행: `streamlit run src/main.py`
-- 환경변수: `.env`에 `GROQ_API_KEY` 필요
+- 환경변수: `.env`에 `GEMINI_API_KEY` 필요
 
 ## 하네스: food-agent 개발
 
