@@ -483,26 +483,27 @@ def build_naver_shopping_url(ingredient: str) -> str:
 def build_shopping_html(dish_name: str, missing_ingredients: list) -> str:
     """missing_ingredients에 대한 네이버 쇼핑 검색 결과 HTML 섹션을 반환한다.
 
-    API 키 미설정 또는 전체 검색 결과 없으면 빈 문자열 반환.
+    API 키 미설정 시에는 네이버 쇼핑 검색 링크만 표시한다.
+    검색 결과가 없더라도 각 재료별 검색 링크는 항상 제공된다.
     """
-    if not missing_ingredients or not NAVER_CLIENT_ID or not NAVER_CLIENT_SECRET:
+    if not missing_ingredients:
         return ""
     blocks = ""
-    any_results = False
     miss_count = len(missing_ingredients)
     for item in missing_ingredients:
         ing_name = _parse_ingredient_string(str(item))["name"]
-        products = get_shopping_items(dish_name, ing_name)
+        products = []
+        if NAVER_CLIENT_ID and NAVER_CLIENT_SECRET:
+            products = get_shopping_items(dish_name, ing_name)
         search_url = html.escape(build_naver_shopping_url(ing_name), quote=True)
+        blocks += (
+            f'<div class="shop-block">'
+            f'<a class="shop-ing-label" href="{search_url}" target="_blank" rel="noopener">'
+            f'<span class="tag tag-amber">구매 필요</span>'
+            f'<span class="shop-ing-name">{html.escape(ing_name)}</span>'
+            f'{icon("arrow_r", 14, color="var(--ink-4)")}</a>'
+        )
         if products:
-            any_results = True
-            blocks += (
-                f'<div class="shop-block">'
-                f'<a class="shop-ing-label" href="{search_url}" target="_blank" rel="noopener">'
-                f'<span class="tag tag-amber">구매 필요</span>'
-                f'<span class="shop-ing-name">{html.escape(ing_name)}</span>'
-                f'{icon("arrow_r", 14, color="var(--ink-4)")}</a>'
-            )
             for p in products:
                 raw_price = str(p.get("lprice", ""))
                 price_str = f"₩{int(raw_price):,}" if raw_price.isdigit() else raw_price
@@ -514,9 +515,13 @@ def build_shopping_html(dish_name: str, missing_ingredients: list) -> str:
                     f'<span class="shop-price">{price_str}</span>'
                     f'</a>'
                 )
-            blocks += '</div>'
-    if not any_results:
-        return ""
+        else:
+            blocks += (
+                f'<div class="shop-no-results">'
+                f'네이버 쇼핑에서 <a href="{search_url}" target="_blank" rel="noopener">{html.escape(ing_name)}</a>을(를) 찾아보세요.'
+                f'</div>'
+            )
+        blocks += '</div>'
     head = (
         f'<div class="shop-head">'
         f'<b>{icon("cart", 16, color="var(--naver)")} 필요한 재료 구매하기</b>'
@@ -2489,6 +2494,12 @@ def render_chat_view():
                     )
                     # 네이버 쇼핑 — 확정 이후에만 표시
                     _missing_confirmed = _confirmed.get("missing_ingredients", [])
+                    if not _missing_confirmed:
+                        # source.md가 없는 경우에는 missing_ingredients 정보가 비어 있을 수 있으므로
+                        # 레시피 재료 전체를 검색 대상으로 사용한다.
+                        if not load_source_md():
+                            _missing_confirmed = _confirmed.get("ingredients", [])
+
                     if _missing_confirmed:
                         _dish_confirmed = str(_confirmed.get("dish_name") or "")
                         with st.spinner("네이버 쇼핑 검색 중..."):
