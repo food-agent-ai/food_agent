@@ -1400,6 +1400,15 @@ def render_sidebar():
         }
       });
     }
+
+    // Bug 3: 사이드바 항상 표시 (JS 보강)
+    var sb = doc.querySelector('[data-testid="stSidebar"]');
+    if (sb) {
+      sb.style.transform = 'none';
+      sb.style.visibility = 'visible';
+      var colBtn = doc.querySelector('[data-testid="stSidebarCollapseButton"]');
+      if (colBtn) colBtn.style.display = 'none';
+    }
   }
   setTimeout(attach, 100);
   setTimeout(attach, 500);

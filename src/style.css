@@ -1046,3 +1046,14 @@
   text-decoration: underline !important;
   box-shadow: none !important;
 }
+
+/* ── Bug 3: 사이드바 항상 표시 ── */
+section[data-testid="stSidebar"] {
+  transform: none !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  display: flex !important;
+}
+[data-testid="stSidebarCollapseButton"] {
+  display: none !important;
+}
