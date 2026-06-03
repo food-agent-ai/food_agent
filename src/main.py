@@ -1898,6 +1898,7 @@ def render_kitchen_view():
     # 숨겨진 재료 삭제 트리거 버튼들
     for i in range(len(_ings)):
         if st.button("_", key=f"del_ing_{i}", use_container_width=True):
+            print(st.session_state["kitchen_ingredients"])
             st.session_state["kitchen_ingredients"].pop(i)
             _save_kitchen_to_source()
             st.rerun()
@@ -1974,35 +1975,37 @@ def render_kitchen_view():
 <script>
 (function() {
   var doc = window.parent.document;
+
+  // 재료/취향 삭제: event delegation — rerun마다 리스너 교체로 stale body 참조 방지
+  if (doc.__kitchenDelListener) {
+    doc.body.removeEventListener('click', doc.__kitchenDelListener);
+  }
+  doc.__kitchenDelListener = function(e) {
+    var delBtn = e.target.closest('[data-del]');
+    if (delBtn) {
+      e.stopPropagation();
+      var i = delBtn.getAttribute('data-del');
+      var hidden = doc.querySelector('.st-key-del_ing_' + i + ' button');
+      if (hidden) hidden.click();
+      return;
+    }
+    var delPrefBtn = e.target.closest('[data-del-pref]');
+    if (delPrefBtn) {
+      e.stopPropagation();
+      var i = delPrefBtn.getAttribute('data-del-pref');
+      var hidden = doc.querySelector('.st-key-del_pref_' + i + ' button');
+      if (hidden) hidden.click();
+    }
+  };
+  doc.body.addEventListener('click', doc.__kitchenDelListener);
+
   function attach() {
-    // 재료 삭제 버튼 (data-del)
-    doc.querySelectorAll('[data-del]').forEach(function(btn) {
-      if (btn.dataset.bound) return;
-      btn.dataset.bound = '1';
-      btn.addEventListener('click', function(e) {
-        e.stopPropagation();
-        var i = btn.getAttribute('data-del');
-        var hidden = doc.querySelector('.st-key-del_ing_' + i + ' button');
-        if (hidden) hidden.click();
-      });
-    });
-    // 취향 삭제 버튼 (data-del-pref)
-    doc.querySelectorAll('[data-del-pref]').forEach(function(btn) {
-      if (btn.dataset.bound) return;
-      btn.dataset.bound = '1';
-      btn.addEventListener('click', function(e) {
-        e.stopPropagation();
-        var i = btn.getAttribute('data-del-pref');
-        var hidden = doc.querySelector('.st-key-del_pref_' + i + ' button');
-        if (hidden) hidden.click();
-      });
-    });
     // 완료 처리 대기 행 클릭 (레시피 보기)
     doc.querySelectorAll('[data-view]').forEach(function(row) {
       if (row.dataset.bound) return;
       row.dataset.bound = '1';
       row.addEventListener('click', function(e) {
-        if (e.target.closest('[data-complete]')) return; // 완료 버튼 클릭 시 무시
+        if (e.target.closest('[data-complete]')) return;
         var key = row.getAttribute('data-view');
         var hidden = doc.querySelector('.st-key-view_recipe_' + key + ' button');
         if (hidden) hidden.click();
