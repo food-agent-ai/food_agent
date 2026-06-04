@@ -820,7 +820,7 @@ def save_to_completed(cart_path: str, completion_result: dict) -> str:
 # ─────────────────────────── PAGE CONFIG ───────────────────────────
 # set_page_config는 스크립트 전체에서 최초 1회만 호출되어야 한다.
 st.set_page_config(
-    page_title="레시피 AI",
+    page_title="쿸",
     page_icon="🍽️",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -1234,7 +1234,7 @@ def render_sidebar():
             <div class="sb-brand">
               <div class="sb-logo">{icon("chef", 21)}</div>
               <div>
-                <div class="sb-brand-name">레시피 AI</div>
+                <div class="sb-brand-name">쿸</div>
                 <div class="sb-brand-sub">사진 한 장으로 요리 시작</div>
               </div>
             </div>
@@ -2221,7 +2221,7 @@ def render_chat_view():
       <button class="sidebar-toggle" data-sidebar-toggle="1">{icon("menu", 20)}</button>
       <div class="msg-ai-avatar" style="width:34px;height:34px;border-radius:10px;margin-top:0">{icon("chef", 17)}</div>
       <div>
-        <div class="topbar-title">레시피 AI</div>
+        <div class="topbar-title">쿸</div>
         <div class="topbar-sub">음식 사진 → 맞춤 레시피</div>
       </div>
       <div class="topbar-spacer"></div>
