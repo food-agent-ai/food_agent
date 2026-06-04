@@ -957,6 +957,9 @@
 .kitchen-mode [data-testid="stLayoutWrapper"] > [data-testid="stVerticalBlock"] > [data-testid="stLayoutWrapper"] {
   padding: 0 22px 22px !important;
 }
+.kitchen-mode [data-testid="stLayoutWrapper"] > [data-testid="stVerticalBlock"] > [data-testid="stElementContainer"]:first-child {
+  padding: 18px 22px 0 !important;
+}
 .kitchen-mode [data-testid="stLayoutWrapper"] > [data-testid="stVerticalBlock"] > [data-testid="stElementContainer"]:not(:first-child) {
   padding: 0 22px 18px !important;
 }
